@@ -6,7 +6,7 @@
 #include "config.h"
 
 // DHT11 sensor configuration
-#define DHTPIN 4 // GPIO4 (safe with WiFi)
+#define DHTPIN 16 // GPIO4 (safe with WiFi - moved from GPIO4)
 #define DHTTYPE DHT11
 // Soil moisture sensor configuration
 int sensorPin = 35;  // GPIO35 (ADC1 - safe with WiFi)
@@ -24,10 +24,16 @@ const unsigned long SEND_INTERVAL = 30000;  // Send data every 30 seconds
 float temperature = 0.0;
 float humidity = 0.0;
 int soilMoistureValue = 0;
+int soilMoisturePercent = 0;  // New variable for percentage
 bool sensorDataValid = false;
+
+// Soil moisture calibration values
+const int DRY_VALUE = 4095;    // 0% moisture (completely dry)
+const int WET_VALUE = 1600;    // 100% moisture (completely wet)
 
 // Function declarations
 int readSoilMoisture();
+int convertToPercentage(int rawValue);
 void readSensorData();
 bool sendAllSensorData();
 
@@ -67,7 +73,31 @@ int readSoilMoisture()
 {
   // Read the analog value from the sensor (using your preferred style)
   sensorValue = analogRead(sensorPin);
+  
+  // Debug: Check if we're getting valid readings
+  Serial.print("DEBUG: Reading from GPIO");
+  Serial.print(sensorPin);
+  Serial.print(" = ");
+  Serial.println(sensorValue);
+  
   return sensorValue;
+}
+
+int convertToPercentage(int rawValue)
+{
+  // Convert raw soil moisture value to percentage
+  // 4095 (dry) = 0% moisture, 1600 (wet) = 100% moisture
+  // Lower values = more wet, Higher values = more dry
+  
+  // Handle extreme cases
+  if (rawValue >= DRY_VALUE) return 0;    // Completely dry (0% moisture)
+  if (rawValue <= WET_VALUE) return 100;  // Completely wet (100% moisture)
+  
+  // Map the value between dry and wet points: 4095->0%, 1600->100%
+  // Formula: percentage = 100 * (DRY_VALUE - rawValue) / (DRY_VALUE - WET_VALUE)
+  int percentage = 100 * (DRY_VALUE - rawValue) / (DRY_VALUE - WET_VALUE);
+  
+  return percentage;
 }
 
 void readSensorData()
@@ -77,10 +107,16 @@ void readSensorData()
 
   // Read soil moisture via analog pin
   int soilValue = readSoilMoisture();
+  
+  // Convert raw value to percentage
+  int soilPercent = convertToPercentage(soilValue);
 
-  // Debug: Print raw analog reading
+  // Debug: Print both raw and percentage values
   Serial.print("Raw analog reading from soil sensor: ");
-  Serial.println(soilValue);
+  Serial.print(soilValue);
+  Serial.print(" (");
+  Serial.print(soilPercent);
+  Serial.println("% moisture)");
 
   if (isnan(h) || isnan(t))
   {
@@ -98,7 +134,8 @@ void readSensorData()
 
   temperature = t;
   humidity = h;
-  soilMoistureValue = soilValue;
+  soilMoistureValue = soilValue;          // Keep raw value for debugging
+  soilMoisturePercent = soilPercent;      // Store percentage for database
   sensorDataValid = true;
 
   Serial.print("Humidity: ");
@@ -108,7 +145,8 @@ void readSensorData()
   Serial.print(t);
   Serial.print(" °C\t");
   Serial.print("Soil Moisture: ");
-  Serial.println(soilValue);
+  Serial.print(soilPercent);
+  Serial.println("%");
 }
 
 bool sendAllSensorData()
@@ -140,7 +178,7 @@ bool sendAllSensorData()
   JsonDocument doc;
   doc["temperature"] = temperature;
   doc["humidity"] = humidity;
-  doc["soil_moisture"] = soilMoistureValue;
+  doc["soil_moisture"] = soilMoisturePercent;  // Send percentage instead of raw value
 
   String jsonString;
   serializeJson(doc, jsonString);
@@ -198,7 +236,7 @@ void loop()
 
     if (success)
     {
-      Serial.println("All sensor data sent successfully to unified table!");
+      Serial.println("All sensor data sent");
     }
     else
     {
