@@ -13,9 +13,9 @@ A comprehensive smart irrigation system using ESP32 with environmental sensors, 
 
 ## Wiring Diagram
 
-![Wiring Schematic](wiring.png)
+![Wiring Schematic](assets/wiring.png)
 
-*Complete schematic showing all sensor connections, relay wiring, and OLED display integration for the ESP32-based smart irrigation system.*
+_Complete schematic showing all sensor connections, relay wiring, and OLED display integration for the ESP32-based smart irrigation system._
 
 ## Features
 

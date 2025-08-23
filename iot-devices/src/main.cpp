@@ -6,7 +6,7 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include "config.h"
+#include "../include/config.h"
 
 // OLED Display configuration
 #define SCREEN_WIDTH 128 // OLED display width, in pixels

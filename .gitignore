@@ -7,5 +7,5 @@
 .env
 
 # Configuration files with sensitive data
-include/config.h
+iot-devices/include/config.h
 iot-dashboard/.env.local
