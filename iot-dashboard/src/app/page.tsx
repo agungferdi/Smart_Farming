@@ -4,7 +4,9 @@ import { useSensorData } from '@/hooks/useSensorData'
 import { TimeSeriesChart } from '@/components/TimeSeriesChart'
 import { IndividualTimeSeriesChart } from '@/components/IndividualTimeSeriesChart'
 import { StatsCard } from '@/components/StatsCard'
-import { RefreshCw, Database, Wifi } from 'lucide-react'
+import { RelayLogCard } from '@/components/RelayLogCard'
+import { RainStatusCard } from '@/components/RainStatusCard'
+import { RefreshCw, Database, Wifi, Droplets } from 'lucide-react'
 import { format } from 'date-fns'
 
 export default function Dashboard() {
@@ -45,13 +47,13 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <Wifi className="h-8 w-8 text-blue-500 mr-3" />
+              <Droplets className="h-8 w-8 text-blue-500 mr-3" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  IoT Sensor Dashboard
+                  Smart Irrigation Dashboard
                 </h1>
                 <p className="text-sm text-gray-500">
-                  Real-time monitoring of temperature, humidity, and soil moisture
+                  Real-time monitoring with automated water pump control and rain detection
                 </p>
               </div>
             </div>
@@ -79,11 +81,17 @@ export default function Dashboard() {
         {/* Stats Cards */}
         <StatsCard data={data} />
 
+        {/* New Status Cards Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <RainStatusCard data={data} />
+          <RelayLogCard />
+        </div>
+
         {/* Time Series Chart */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8 border">
           <TimeSeriesChart 
             data={data} 
-            title="Sensor Data Over Time" 
+            title="Environmental Sensor Data Over Time" 
           />
         </div>
 

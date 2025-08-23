@@ -11,5 +11,17 @@ export interface SensorData {
   temperature: number
   humidity: number
   soil_moisture: number
+  rain_detected: boolean
+  created_at: string
+}
+
+// Types for relay log data
+export interface RelayLog {
+  id: number
+  relay_status: boolean
+  trigger_reason: string
+  soil_moisture: number
+  temperature: number
+  rain_detected: boolean
   created_at: string
 }
