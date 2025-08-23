@@ -3,7 +3,20 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <DHT.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include "config.h"
+
+// OLED Display configuration
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+#define OLED_RESET -1    // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C // See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+#define SDA_PIN 21       // SDA pin
+#define SCL_PIN 22       // SCL pin
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // DHT11 sensor configuration
 #define DHTPIN 16 // GPIO16 (safe with WiFi)
@@ -45,6 +58,8 @@ const int DRY_VALUE = 4095;    // 0% moisture (completely dry)
 const int WET_VALUE = 1600;    // 100% moisture (completely wet)
 
 // Function declarations
+void initOLED();
+void updateOLEDDisplay();
 int readSoilMoisture();
 int convertToPercentage(int rawValue);
 bool readRainSensor();
@@ -58,6 +73,12 @@ void setup()
   Serial.begin(115200);
   delay(1000);
 
+  // Initialize I2C for OLED display
+  Wire.begin(SDA_PIN, SCL_PIN);
+  
+  // Initialize OLED display
+  initOLED();
+
   // Initialize relay pin
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, HIGH);  // Start with relay OFF (HIGH = OFF for low-triggered relay)
@@ -69,7 +90,7 @@ void setup()
 
   // Initialize sensors
   Serial.println("Initializing sensors...");
-  Serial.println("DHT11 on GPIO16, Soil moisture on GPIO35, Relay on GPIO17, Rain sensor on GPIO18");
+  Serial.println("DHT11 on GPIO16, Soil moisture on GPIO35, Relay on GPIO17, Rain sensor on GPIO18, OLED on SDA21/SCL22");
 
   dht.begin();
 
@@ -405,6 +426,8 @@ void loop()
     // Check relay control after reading sensors
     if (sensorDataValid) {
       controlRelay();
+      // Update OLED display with new sensor data
+      updateOLEDDisplay();
     }
     
     lastSensorRead = currentTime;
@@ -428,4 +451,84 @@ void loop()
   }
 
   delay(100);
+}
+
+// OLED Display Functions
+void initOLED()
+{
+  Serial.println("Initializing OLED display...");
+  
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;); // Don't proceed, loop forever
+  }
+
+  // Show initial display buffer contents on the screen --
+  // the library initializes this with an Adafruit splash screen.
+  display.display();
+  delay(2000); // Pause for 2 seconds
+
+  // Clear the buffer
+  display.clearDisplay();
+  
+  // Display startup message
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.println(F("Smart Irrigation"));
+  display.println(F("System Starting..."));
+  display.println(F(""));
+  display.println(F("SDA: GPIO21"));
+  display.println(F("SCL: GPIO22"));
+  display.display();
+  delay(3000);
+  
+  Serial.println("OLED display initialized successfully!");
+}
+
+void updateOLEDDisplay()
+{
+  // Clear the display
+  display.clearDisplay();
+  
+  // Set text properties
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  
+  // Title
+  display.setTextSize(1);
+  display.println(F("Smart Irrigation"));
+  display.println(F("================"));
+  
+  // Temperature
+  display.print(F("Temp: "));
+  display.print(temperature, 1);
+  display.println(F(" C"));
+  
+  // Humidity
+  display.print(F("Humid: "));
+  display.print(humidity, 1);
+  display.println(F(" %"));
+  
+  // Soil Moisture
+  display.print(F("Soil: "));
+  display.print(soilMoisturePercent);
+  display.println(F(" %"));
+  
+  // Rain Status
+  display.print(F("Rain: "));
+  display.println(rainDetected ? F("YES") : F("NO"));
+  
+  // Pump Status
+  display.print(F("Pump: "));
+  display.println(relayActive ? F("ON") : F("OFF"));
+  
+  // WiFi Status
+  display.print(F("WiFi: "));
+  display.println(WiFi.status() == WL_CONNECTED ? F("OK") : F("FAIL"));
+  
+  // Display everything on the screen
+  display.display();
 }

@@ -5,3 +5,6 @@
 .vscode/ipch
 .venv
 .env
+
+# Configuration files with sensitive data
+include/config.h
