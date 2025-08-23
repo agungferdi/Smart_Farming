@@ -150,7 +150,7 @@ export function TimeSeriesChart({ data, title }: TimeSeriesChartProps) {
   }
 
   return (
-    <div className="h-96 w-full">
+    <div className="h-80 w-full">
       <Line data={chartData} options={options} />
     </div>
   )

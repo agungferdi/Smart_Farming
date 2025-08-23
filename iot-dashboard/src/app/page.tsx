@@ -83,16 +83,17 @@ export default function Dashboard() {
 
         {/* New Status Cards Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <RainStatusCard data={data} />
+          <div className="space-y-6">
+            <RainStatusCard data={data} />
+            {/* Environmental Chart below Rain Status */}
+            <div className="bg-white rounded-lg shadow-md p-6 border h-96">
+              <TimeSeriesChart 
+                data={data} 
+                title="Environmental Sensor Data Over Time" 
+              />
+            </div>
+          </div>
           <RelayLogCard />
-        </div>
-
-        {/* Time Series Chart */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8 border">
-          <TimeSeriesChart 
-            data={data} 
-            title="Environmental Sensor Data Over Time" 
-          />
         </div>
 
         {/* Individual Sensor Charts */}
