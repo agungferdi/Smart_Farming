@@ -8,3 +8,4 @@
 
 # Configuration files with sensitive data
 include/config.h
+iot-dashboard/.env.local
