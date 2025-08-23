@@ -6,11 +6,13 @@
 #include "config.h"
 
 // DHT11 sensor configuration
-#define DHTPIN 16 // GPIO4 (safe with WiFi - moved from GPIO4)
+#define DHTPIN 16 // GPIO16 (safe with WiFi)
 #define DHTTYPE DHT11
 // Soil moisture sensor configuration
 int sensorPin = 35;  // GPIO35 (ADC1 - safe with WiFi)
 int sensorValue = 0; // Variable to store sensor value
+// Relay (water pump) configuration
+#define RELAY_PIN 17 // GPIO17 for relay control
 
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -18,7 +20,7 @@ DHT dht(DHTPIN, DHTTYPE);
 unsigned long lastSensorRead = 0;
 unsigned long lastDataSent = 0;
 const unsigned long SENSOR_INTERVAL = 2000; // Read sensor every 2 seconds
-const unsigned long SEND_INTERVAL = 30000;  // Send data every 30 seconds
+const unsigned long SEND_INTERVAL = 15000;  // Send data every 15 seconds (changed from 30s)
 
 // Global variables for sensor data
 float temperature = 0.0;
@@ -26,6 +28,14 @@ float humidity = 0.0;
 int soilMoistureValue = 0;
 int soilMoisturePercent = 0;  // New variable for percentage
 bool sensorDataValid = false;
+
+// Relay control variables
+bool relayActive = false;
+bool lastRelayState = false;
+
+// Automation thresholds
+const int SOIL_MOISTURE_THRESHOLD = 20;  // 0-20% soil moisture triggers pump
+const float TEMPERATURE_THRESHOLD = 35.0; // Temperature must be >= 35°C
 
 // Soil moisture calibration values
 const int DRY_VALUE = 4095;    // 0% moisture (completely dry)
@@ -35,16 +45,24 @@ const int WET_VALUE = 1600;    // 100% moisture (completely wet)
 int readSoilMoisture();
 int convertToPercentage(int rawValue);
 void readSensorData();
-bool sendAllSensorData();
+void controlRelay();
+bool sendSensorData();
+bool sendRelayLog(bool relayStatus, String reason);
 
 void setup()
 {
   Serial.begin(115200);
   delay(1000);
 
+  // Initialize relay pin
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, HIGH);  // Start with relay OFF (HIGH = OFF for low-triggered relay)
+  relayActive = false;
+  lastRelayState = false;
+
   // Initialize sensors
   Serial.println("Initializing sensors...");
-  Serial.println("DHT11 on GPIO2, Soil moisture on GPIO35");
+  Serial.println("DHT11 on GPIO16, Soil moisture on GPIO35, Relay on GPIO17");
 
   dht.begin();
 
@@ -67,6 +85,7 @@ void setup()
   Serial.println("WiFi connected!");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+  Serial.println("Smart Irrigation System Ready!");
 }
 
 int readSoilMoisture()
@@ -149,7 +168,51 @@ void readSensorData()
   Serial.println("%");
 }
 
-bool sendAllSensorData()
+void controlRelay()
+{
+  if (!sensorDataValid) return;
+
+  bool shouldActivate = false;
+  String reason = "";
+
+  // Check automation conditions
+  if (soilMoisturePercent <= SOIL_MOISTURE_THRESHOLD && temperature >= TEMPERATURE_THRESHOLD) {
+    shouldActivate = true;
+    reason = "Low soil moisture (" + String(soilMoisturePercent) + "%) and high temperature (" + String(temperature) + "°C)";
+  } else {
+    shouldActivate = false;  // Explicitly set to false (though it already is)
+    reason = "Conditions no longer met - Soil: " + String(soilMoisturePercent) + "%, Temp: " + String(temperature) + "°C";
+  }
+
+  // Update relay state - LOW-triggered relay (LOW = ON, HIGH = OFF)
+  relayActive = shouldActivate;
+  digitalWrite(RELAY_PIN, relayActive ? LOW : HIGH);  // LOW = ON, HIGH = OFF for low-triggered relay
+
+  // Log relay status changes
+  if (relayActive != lastRelayState) {
+    String status = relayActive ? "ACTIVATED" : "DEACTIVATED";
+    Serial.println("=== WATER PUMP " + status + " ===");
+    Serial.println("Reason: " + reason);
+    
+    Serial.print("Current conditions - Soil: ");
+    Serial.print(soilMoisturePercent);
+    Serial.print("%, Temp: ");
+    Serial.print(temperature);
+    Serial.println("°C");
+    
+    Serial.print("Relay Pin (GPIO17) set to: ");
+    Serial.println(relayActive ? "LOW (ON)" : "HIGH (OFF)");
+    Serial.print("Expected LED behavior: ");
+    Serial.println(relayActive ? "LED OFF (pump running)" : "LED ON (pump stopped)");
+    
+    // Send relay log to database only when state changes
+    sendRelayLog(relayActive, reason);
+    
+    lastRelayState = relayActive;
+  }
+}
+
+bool sendSensorData()
 {
   if (!sensorDataValid)
   {
@@ -165,7 +228,7 @@ bool sendAllSensorData()
 
   HTTPClient http;
 
-  // Supabase REST API endpoint for the unified sensor-data table
+  // Supabase REST API endpoint for the sensor-data table
   String url = String(SUPABASE_URL) + "/rest/v1/sensor-data";
 
   http.begin(url);
@@ -174,16 +237,16 @@ bool sendAllSensorData()
   http.addHeader("Authorization", "Bearer " + String(SUPABASE_SERVICE_ROLE_KEY));
   http.addHeader("Prefer", "return=minimal");
 
-  // Create JSON payload with all sensor data
+  // Create JSON payload with sensor data
   JsonDocument doc;
   doc["temperature"] = temperature;
   doc["humidity"] = humidity;
-  doc["soil_moisture"] = soilMoisturePercent;  // Send percentage instead of raw value
+  doc["soil_moisture"] = soilMoisturePercent;
 
   String jsonString;
   serializeJson(doc, jsonString);
 
-  Serial.print("Sending all sensor data: ");
+  Serial.print("Sending sensor data: ");
   Serial.println(jsonString);
 
   // Send POST request
@@ -192,28 +255,92 @@ bool sendAllSensorData()
   if (httpResponseCode > 0)
   {
     String response = http.getString();
-    Serial.print("HTTP Response code: ");
+    Serial.print("Sensor data HTTP Response: ");
     Serial.println(httpResponseCode);
 
     if (httpResponseCode == 201)
     {
-      Serial.println("All sensor data sent successfully to database!");
+      Serial.println("Sensor data sent successfully!");
+      http.end();
       return true;
     }
     else
     {
-      Serial.print("Unexpected response code. Response: ");
+      Serial.print("Unexpected response. Response: ");
       Serial.println(response);
-      return false;
     }
   }
   else
   {
-    Serial.print("Error sending data. HTTP error code: ");
+    Serial.print("Error sending sensor data. HTTP error: ");
     Serial.println(httpResponseCode);
     Serial.print("Error: ");
     Serial.println(http.errorToString(httpResponseCode));
+  }
+
+  http.end();
+  return false;
+}
+
+bool sendRelayLog(bool relayStatus, String reason)
+{
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.println("WiFi not connected - cannot send relay log");
     return false;
+  }
+
+  HTTPClient http;
+
+  // Supabase REST API endpoint for the relay-log table
+  String url = String(SUPABASE_URL) + "/rest/v1/relay-log";
+
+  http.begin(url);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("apikey", SUPABASE_SERVICE_ROLE_KEY);
+  http.addHeader("Authorization", "Bearer " + String(SUPABASE_SERVICE_ROLE_KEY));
+  http.addHeader("Prefer", "return=minimal");
+
+  // Create JSON payload with relay log data
+  JsonDocument doc;
+  doc["relay_status"] = relayStatus;
+  doc["trigger_reason"] = reason;
+  doc["soil_moisture"] = soilMoisturePercent;
+  doc["temperature"] = temperature;
+
+  String jsonString;
+  serializeJson(doc, jsonString);
+
+  Serial.print("Sending relay log: ");
+  Serial.println(jsonString);
+
+  // Send POST request
+  int httpResponseCode = http.POST(jsonString);
+
+  if (httpResponseCode > 0)
+  {
+    String response = http.getString();
+    Serial.print("Relay log HTTP Response: ");
+    Serial.println(httpResponseCode);
+
+    if (httpResponseCode == 201)
+    {
+      Serial.println("Relay log sent successfully!");
+      http.end();
+      return true;
+    }
+    else
+    {
+      Serial.print("Unexpected relay log response. Response: ");
+      Serial.println(response);
+    }
+  }
+  else
+  {
+    Serial.print("Error sending relay log. HTTP error: ");
+    Serial.println(httpResponseCode);
+    Serial.print("Error: ");
+    Serial.println(http.errorToString(httpResponseCode));
   }
 
   http.end();
@@ -224,23 +351,31 @@ void loop()
 {
   unsigned long currentTime = millis();
 
+  // Read sensors every 2 seconds
   if (currentTime - lastSensorRead >= SENSOR_INTERVAL)
   {
     readSensorData();
+    
+    // Check relay control after reading sensors
+    if (sensorDataValid) {
+      controlRelay();
+    }
+    
     lastSensorRead = currentTime;
   }
 
+  // Send sensor data every 15 seconds
   if (currentTime - lastDataSent >= SEND_INTERVAL)
   {
-    bool success = sendAllSensorData();
+    bool success = sendSensorData();
 
     if (success)
     {
-      Serial.println("All sensor data sent");
+      Serial.println("✓ Sensor data sent to database");
     }
     else
     {
-      Serial.println("Failed to send sensor data");
+      Serial.println("✗ Failed to send sensor data");
     }
 
     lastDataSent = currentTime;
