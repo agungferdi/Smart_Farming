@@ -13,6 +13,8 @@ int sensorPin = 35;  // GPIO35 (ADC1 - safe with WiFi)
 int sensorValue = 0; // Variable to store sensor value
 // Relay (water pump) configuration
 #define RELAY_PIN 17 // GPIO17 for relay control
+// Rain sensor (MH-RD) configuration
+#define RAIN_SENSOR_PIN 18 // GPIO18 for digital rain detection
 
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -27,6 +29,7 @@ float temperature = 0.0;
 float humidity = 0.0;
 int soilMoistureValue = 0;
 int soilMoisturePercent = 0;  // New variable for percentage
+bool rainDetected = false;    // Rain sensor reading
 bool sensorDataValid = false;
 
 // Relay control variables
@@ -44,6 +47,7 @@ const int WET_VALUE = 1600;    // 100% moisture (completely wet)
 // Function declarations
 int readSoilMoisture();
 int convertToPercentage(int rawValue);
+bool readRainSensor();
 void readSensorData();
 void controlRelay();
 bool sendSensorData();
@@ -60,17 +64,23 @@ void setup()
   relayActive = false;
   lastRelayState = false;
 
+  // Initialize rain sensor pin
+  pinMode(RAIN_SENSOR_PIN, INPUT);
+
   // Initialize sensors
   Serial.println("Initializing sensors...");
-  Serial.println("DHT11 on GPIO16, Soil moisture on GPIO35, Relay on GPIO17");
+  Serial.println("DHT11 on GPIO16, Soil moisture on GPIO35, Relay on GPIO17, Rain sensor on GPIO18");
 
   dht.begin();
 
-  // Test soil moisture sensor immediately
+  // Test sensors immediately
   Serial.println("Testing sensors...");
-  int testValue = readSoilMoisture();
+  int testSoilValue = readSoilMoisture();
+  bool testRainValue = readRainSensor();
   Serial.print("Initial soil moisture reading: ");
-  Serial.println(testValue);
+  Serial.println(testSoilValue);
+  Serial.print("Initial rain sensor reading: ");
+  Serial.println(testRainValue ? "Rain detected" : "No rain");
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to WiFi");
@@ -85,7 +95,7 @@ void setup()
   Serial.println("WiFi connected!");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
-  Serial.println("Smart Irrigation System Ready!");
+  Serial.println("Smart Irrigation System with Rain Detection Ready!");
 }
 
 int readSoilMoisture()
@@ -119,6 +129,27 @@ int convertToPercentage(int rawValue)
   return percentage;
 }
 
+bool readRainSensor()
+{
+  // Read the digital pin from MH-RD rain sensor
+  // MH-RD typically: LOW = rain detected, HIGH = no rain
+  int digitalValue = digitalRead(RAIN_SENSOR_PIN);
+  
+  // Convert to boolean (invert logic since LOW = rain)
+  bool isRaining = (digitalValue == LOW);
+  
+  // Debug output
+  Serial.print("DEBUG: Rain sensor GPIO");
+  Serial.print(RAIN_SENSOR_PIN);
+  Serial.print(" = ");
+  Serial.print(digitalValue);
+  Serial.print(" (Rain: ");
+  Serial.print(isRaining ? "true" : "false");
+  Serial.println(")");
+  
+  return isRaining;
+}
+
 void readSensorData()
 {
   float h = dht.readHumidity();
@@ -129,6 +160,9 @@ void readSensorData()
   
   // Convert raw value to percentage
   int soilPercent = convertToPercentage(soilValue);
+
+  // Read rain sensor
+  bool isRaining = readRainSensor();
 
   // Debug: Print both raw and percentage values
   Serial.print("Raw analog reading from soil sensor: ");
@@ -155,6 +189,7 @@ void readSensorData()
   humidity = h;
   soilMoistureValue = soilValue;          // Keep raw value for debugging
   soilMoisturePercent = soilPercent;      // Store percentage for database
+  rainDetected = isRaining;               // Store rain detection status
   sensorDataValid = true;
 
   Serial.print("Humidity: ");
@@ -165,7 +200,9 @@ void readSensorData()
   Serial.print(" °C\t");
   Serial.print("Soil Moisture: ");
   Serial.print(soilPercent);
-  Serial.println("%");
+  Serial.print("%\t");
+  Serial.print("Rain: ");
+  Serial.println(isRaining ? "true" : "false");
 }
 
 void controlRelay()
@@ -175,13 +212,19 @@ void controlRelay()
   bool shouldActivate = false;
   String reason = "";
 
-  // Check automation conditions
+  // Check automation conditions (original logic - no rain sensor involved)
   if (soilMoisturePercent <= SOIL_MOISTURE_THRESHOLD && temperature >= TEMPERATURE_THRESHOLD) {
     shouldActivate = true;
     reason = "Low soil moisture (" + String(soilMoisturePercent) + "%) and high temperature (" + String(temperature) + "°C)";
   } else {
     shouldActivate = false;  // Explicitly set to false (though it already is)
-    reason = "Conditions no longer met - Soil: " + String(soilMoisturePercent) + "%, Temp: " + String(temperature) + "°C";
+    if (soilMoisturePercent > SOIL_MOISTURE_THRESHOLD) {
+      reason = "Soil moisture sufficient (" + String(soilMoisturePercent) + "%)";
+    } else if (temperature < TEMPERATURE_THRESHOLD) {
+      reason = "Temperature too low (" + String(temperature) + "°C)";
+    } else {
+      reason = "Conditions no longer met - Soil: " + String(soilMoisturePercent) + "%, Temp: " + String(temperature) + "°C";
+    }
   }
 
   // Update relay state - LOW-triggered relay (LOW = ON, HIGH = OFF)
@@ -198,7 +241,8 @@ void controlRelay()
     Serial.print(soilMoisturePercent);
     Serial.print("%, Temp: ");
     Serial.print(temperature);
-    Serial.println("°C");
+    Serial.print("°C, Rain: ");
+    Serial.println(rainDetected ? "true" : "false");
     
     Serial.print("Relay Pin (GPIO17) set to: ");
     Serial.println(relayActive ? "LOW (ON)" : "HIGH (OFF)");
@@ -242,6 +286,7 @@ bool sendSensorData()
   doc["temperature"] = temperature;
   doc["humidity"] = humidity;
   doc["soil_moisture"] = soilMoisturePercent;
+  doc["rain_detected"] = rainDetected;
 
   String jsonString;
   serializeJson(doc, jsonString);
@@ -307,6 +352,7 @@ bool sendRelayLog(bool relayStatus, String reason)
   doc["trigger_reason"] = reason;
   doc["soil_moisture"] = soilMoisturePercent;
   doc["temperature"] = temperature;
+  doc["rain_detected"] = rainDetected;
 
   String jsonString;
   serializeJson(doc, jsonString);
