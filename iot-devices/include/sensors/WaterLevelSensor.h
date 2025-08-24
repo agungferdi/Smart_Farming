@@ -8,6 +8,7 @@ private:
     int pin;
     int rawValue;
     String status;
+    // Calibration thresholds moved to SensorCalibration.h/cpp
 
 public:
     WaterLevelSensor(int analogPin);

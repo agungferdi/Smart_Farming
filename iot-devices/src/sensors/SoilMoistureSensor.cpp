@@ -1,4 +1,5 @@
 #include "sensors/SoilMoistureSensor.h"
+#include "utils/SensorCalibration.h"
 
 SoilMoistureSensor::SoilMoistureSensor(int analogPin) : pin(analogPin) {
     rawValue = 0;
@@ -20,19 +21,8 @@ int SoilMoistureSensor::getPercentage() const {
 }
 
 int SoilMoistureSensor::convertToPercentage(int rawValue) {
-    // Convert raw soil moisture value to percentage
-    // 4095 (dry) = 0% moisture, 1600 (wet) = 100% moisture
-    // Lower values = more wet, Higher values = more dry
-    
-    // Handle extreme cases
-    if (rawValue >= DRY_VALUE) return 0;    // Completely dry (0% moisture)
-    if (rawValue <= WET_VALUE) return 100;  // Completely wet (100% moisture)
-    
-    // Map the value between dry and wet points: 4095->0%, 1600->100%
-    // Formula: percentage = 100 * (DRY_VALUE - rawValue) / (DRY_VALUE - WET_VALUE)
-    int percentage = 100 * (DRY_VALUE - rawValue) / (DRY_VALUE - WET_VALUE);
-    
-    return percentage;
+    // Use the centralized calibration function
+    return SoilMoistureCalibration::convertToPercentage(rawValue);
 }
 
 void SoilMoistureSensor::printDebugInfo() const {
@@ -40,5 +30,5 @@ void SoilMoistureSensor::printDebugInfo() const {
 }
 
 bool SoilMoistureSensor::isValidReading() const {
-    return (rawValue >= 0 && rawValue <= 4095);
+    return CalibrationUtils::validateSoilMoistureReading(rawValue);
 }

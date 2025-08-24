@@ -1,6 +1,8 @@
 #ifndef SENSOR_CALIBRATION_H
 #define SENSOR_CALIBRATION_H
 
+#include <Arduino.h>
+
 // GPIO Pin Definitions
 namespace Pins {
     const int DHT11_PIN = 16;          // GPIO16 (safe with WiFi)
@@ -17,21 +19,26 @@ namespace DHT11Config {
     const int DHT_TYPE = 11;           // DHT11 sensor type
 }
 
-// Soil Moisture Calibration
+// Soil Moisture Sensor Calibration
 namespace SoilMoistureCalibration {
-    const int DRY_VALUE = 4095;       // 0% moisture (completely dry)
-    const int WET_VALUE = 1600;       // 100% moisture (completely wet)
+    extern const int DRY_VALUE;    // 0% moisture (completely dry)
+    extern const int WET_VALUE;    // 100% moisture (completely wet)
+    
+    // Convert raw soil moisture value to percentage
+    int convertToPercentage(int rawValue);
 }
 
-// Water Level Calibration
+// Water Level Sensor Calibration
 namespace WaterLevelCalibration {
     const int DRY_VALUE = 0;          // Sensor value when dry (no water)
     const int WET_VALUE = 1050;       // Sensor value when sensor is fully submerged
     const int SENSOR_HEIGHT_CM = 5;   // Actual height of your sensor in cm
     
-    // Status thresholds
-    const int LOW_THRESHOLD = 350;     // Below this = Low
-    const int MEDIUM_THRESHOLD = 400;  // Between 350-399 = Medium, 400+ = High
+    extern const int LOW_THRESHOLD;     // Below this = Low
+    extern const int MEDIUM_THRESHOLD;  // Below this = Medium, above = High
+    
+    // Determine water level status based on raw value
+    String determineStatus(int rawValue);
 }
 
 // Relay Control Thresholds
@@ -44,6 +51,16 @@ namespace RelayThresholds {
 namespace Timing {
     const unsigned long SENSOR_INTERVAL = 2000;  // Read sensor every 2 seconds
     const unsigned long SEND_INTERVAL = 15000;   // Send data every 15 seconds
+}
+
+// Utility functions for validation and debugging
+namespace CalibrationUtils {
+    bool validateSoilMoistureReading(int rawValue);
+    bool validateWaterLevelReading(int rawValue);
+    bool validateTemperatureReading(float temperature);
+    bool validateHumidityReading(float humidity);
+    void printCalibrationInfo();
+    void printSensorReadings(int soilRaw, int soilPercent, int waterRaw, String waterStatus);
 }
 
 #endif

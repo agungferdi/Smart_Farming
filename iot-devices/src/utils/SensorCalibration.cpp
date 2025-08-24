@@ -1,12 +1,45 @@
 #include "utils/SensorCalibration.h"
 
-// This file contains the implementation of calibration utilities
-// Currently, all calibration constants are defined in the header file
-// Additional utility functions can be added here as needed
+// Soil Moisture Sensor Calibration Values
+namespace SoilMoistureCalibration {
+    const int DRY_VALUE = 4095;    // 0% moisture (completely dry)
+    const int WET_VALUE = 1600;    // 100% moisture (completely wet)
+    
+    int convertToPercentage(int rawValue) {
+        // Convert raw soil moisture value to percentage
+        // 4095 (dry) = 0% moisture, 1600 (wet) = 100% moisture
+        // Lower values = more wet, Higher values = more dry
+        
+        // Handle extreme cases
+        if (rawValue >= DRY_VALUE) return 0;    // Completely dry (0% moisture)
+        if (rawValue <= WET_VALUE) return 100;  // Completely wet (100% moisture)
+        
+        // Map the value between dry and wet points: 4095->0%, 1600->100%
+        // Formula: percentage = 100 * (DRY_VALUE - rawValue) / (DRY_VALUE - WET_VALUE)
+        int percentage = 100 * (DRY_VALUE - rawValue) / (DRY_VALUE - WET_VALUE);
+        
+        return percentage;
+    }
+}
 
-// Example utility functions that could be added:
+// Water Level Sensor Calibration Values
+namespace WaterLevelCalibration {
+    const int LOW_THRESHOLD = 350;     // Below this = Low
+    const int MEDIUM_THRESHOLD = 400;  // Below this = Medium, above = High
+    
+    String determineStatus(int rawValue) {
+        // Determine water level status based on raw value
+        if (rawValue < LOW_THRESHOLD) {
+            return "Low";
+        } else if (rawValue < MEDIUM_THRESHOLD) {
+            return "Medium";
+        } else {
+            return "High";
+        }
+    }
+}
 
-/*
+// Validation utility functions
 namespace CalibrationUtils {
     
     bool validateSoilMoistureReading(int rawValue) {
@@ -27,14 +60,36 @@ namespace CalibrationUtils {
     
     void printCalibrationInfo() {
         Serial.println("=== SENSOR CALIBRATION INFO ===");
-        Serial.printf("DHT11 Pin: %d\n", Pins::DHT11_PIN);
-        Serial.printf("Soil Moisture Pin: %d\n", Pins::SOIL_MOISTURE_PIN);
-        Serial.printf("Rain Sensor Pin: %d\n", Pins::RAIN_SENSOR_PIN);
-        Serial.printf("Water Level Pin: %d\n", Pins::WATER_LEVEL_PIN);
-        Serial.printf("Relay Pin: %d\n", Pins::RELAY_PIN);
-        Serial.printf("OLED SDA Pin: %d\n", Pins::SDA_PIN);
-        Serial.printf("OLED SCL Pin: %d\n", Pins::SCL_PIN);
+        Serial.println("GPIO Pin Configuration:");
+        Serial.printf("  DHT11 Pin: %d\n", Pins::DHT11_PIN);
+        Serial.printf("  Soil Moisture Pin: %d\n", Pins::SOIL_MOISTURE_PIN);
+        Serial.printf("  Rain Sensor Pin: %d\n", Pins::RAIN_SENSOR_PIN);
+        Serial.printf("  Water Level Pin: %d\n", Pins::WATER_LEVEL_PIN);
+        Serial.printf("  Relay Pin: %d\n", Pins::RELAY_PIN);
+        Serial.printf("  OLED SDA Pin: %d\n", Pins::SDA_PIN);
+        Serial.printf("  OLED SCL Pin: %d\n", Pins::SCL_PIN);
+        Serial.println("Soil Moisture Calibration:");
+        Serial.printf("  Dry Value (0%% moisture): %d\n", SoilMoistureCalibration::DRY_VALUE);
+        Serial.printf("  Wet Value (100%% moisture): %d\n", SoilMoistureCalibration::WET_VALUE);
+        Serial.println("Water Level Calibration:");
+        Serial.printf("  Dry Value: %d\n", WaterLevelCalibration::DRY_VALUE);
+        Serial.printf("  Wet Value: %d\n", WaterLevelCalibration::WET_VALUE);
+        Serial.printf("  Sensor Height: %d cm\n", WaterLevelCalibration::SENSOR_HEIGHT_CM);
+        Serial.printf("  Low Threshold: %d\n", WaterLevelCalibration::LOW_THRESHOLD);
+        Serial.printf("  Medium Threshold: %d\n", WaterLevelCalibration::MEDIUM_THRESHOLD);
+        Serial.println("Relay Control Thresholds:");
+        Serial.printf("  Soil Moisture Threshold: %d%%\n", RelayThresholds::SOIL_MOISTURE_THRESHOLD);
+        Serial.printf("  Temperature Threshold: %.1f°C\n", RelayThresholds::TEMPERATURE_THRESHOLD);
+        Serial.println("Timing Configuration:");
+        Serial.printf("  Sensor Reading Interval: %lu ms\n", Timing::SENSOR_INTERVAL);
+        Serial.printf("  Data Send Interval: %lu ms\n", Timing::SEND_INTERVAL);
         Serial.println("==============================");
     }
+    
+    void printSensorReadings(int soilRaw, int soilPercent, int waterRaw, String waterStatus) {
+        Serial.println("=== CURRENT SENSOR READINGS ===");
+        Serial.printf("Soil Moisture: %d raw -> %d%% moisture\n", soilRaw, soilPercent);
+        Serial.printf("Water Level: %d raw -> %s\n", waterRaw, waterStatus.c_str());
+        Serial.println("===============================");
+    }
 }
-*/

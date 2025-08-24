@@ -8,8 +8,7 @@ private:
     int pin;
     int rawValue;
     int percentage;
-    const int DRY_VALUE = 4095;    // 0% moisture (completely dry)
-    const int WET_VALUE = 1600;    // 100% moisture (completely wet)
+    // Calibration values moved to SensorCalibration.h/cpp
 
 public:
     SoilMoistureSensor(int analogPin);

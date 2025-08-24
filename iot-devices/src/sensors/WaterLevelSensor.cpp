@@ -1,4 +1,5 @@
 #include "sensors/WaterLevelSensor.h"
+#include "utils/SensorCalibration.h"
 
 WaterLevelSensor::WaterLevelSensor(int analogPin) : pin(analogPin) {
     rawValue = 0;
@@ -20,17 +21,8 @@ String WaterLevelSensor::getStatus() const {
 }
 
 String WaterLevelSensor::determineStatus(int rawValue) {
-    // Determine water level status based on raw value
-    String status;
-    if (rawValue < 350) {
-        status = "Low";
-    } else if (rawValue < 400) {
-        status = "Medium";
-    } else {
-        status = "High";
-    }
-    
-    return status;
+    // Use the centralized calibration function
+    return WaterLevelCalibration::determineStatus(rawValue);
 }
 
 void WaterLevelSensor::printDebugInfo() const {
@@ -38,5 +30,5 @@ void WaterLevelSensor::printDebugInfo() const {
 }
 
 bool WaterLevelSensor::isValidReading() const {
-    return (rawValue >= 0 && rawValue <= 4095);
+    return CalibrationUtils::validateWaterLevelReading(rawValue);
 }
