@@ -20,15 +20,21 @@ bool OLEDDisplay::begin() {
     
     // Scan for I2C devices first
     Serial.println("Scanning I2C devices...");
-    byte error, address;
-    int nDevices = 0;
+    byte i2cResult, address;
+    int nDevices = 0
     bool foundOLED = false;
-    
-    for(address = 1; address < 127; address++) {
+
+    // I2C 7-bit address range: 0x01 to 0x7F (1 to 127)
+    const byte I2C_ADDRESS_MIN = 1;
+    const byte I2C_ADDRESS_MAX = 127; // 0x7F, exclusive in loop
+
+    // Wire.endTransmission() returns 0 on success, nonzero on error
+    const byte I2C_DEVICE_PRESENT_CODE = 0; // 0 means device responded
+    for(address = I2C_ADDRESS_MIN; address < I2C_ADDRESS_MAX; address++) {
         Wire.beginTransmission(address);
-        error = Wire.endTransmission();
+        i2cResult = Wire.endTransmission(); // Fixed: use i2cResult instead of undeclared 'error'
         
-        if (error == 0) {
+        if (i2cResult == 0) {
             Serial.printf("I2C device found at address 0x%02X\n", address);
             if (address == 0x3C || address == 0x3D) {
                 foundOLED = true;
@@ -85,8 +91,7 @@ bool OLEDDisplay::begin() {
     // Show initial display buffer contents on the screen --
     // the library initializes this with an Adafruit splash screen.
     display->display();
-    delay(2000); // Pause for 2 seconds
-
+    delay(2000); 
     showStartupMessage();
     Serial.println("OLED display initialized successfully!");
     return true;
@@ -95,10 +100,10 @@ bool OLEDDisplay::begin() {
 void OLEDDisplay::showStartupMessage() {
     if (!display) return;
     
-    // Clear the buffer first
+   
     display->clearDisplay();
     
-    // Display startup message
+    
     display->setTextSize(1);
     display->setTextColor(SSD1306_WHITE);
     display->setCursor(0, 0);
@@ -108,48 +113,48 @@ void OLEDDisplay::showStartupMessage() {
     display->printf("SDA: GPIO%d\n", sdaPin);
     display->printf("SCL: GPIO%d\n", sclPin);
     display->display();
-    delay(3000); // Wait 3 seconds like the original
+    delay(3000); 
 }
 
 void OLEDDisplay::updateSensorData(float temp, float humidity, int soilMoisture, 
                                   String waterLevel, bool rain, bool pumpActive, bool wifiConnected) {
     if (!display) return;
     
-    // Clear the display
+    
     display->clearDisplay();
     
-    // Set text properties
+    
     display->setTextSize(1);
     display->setTextColor(SSD1306_WHITE);
     display->setCursor(0, 0);
     
-    // Title
+    
     display->println(F("Smart Irrigation"));
     display->println(F("================"));
     
-    // Temperature
+    
     display->printf("Temp: %.1f C\n", temp);
     
-    // Humidity
+    
     display->printf("Humid: %.1f %%\n", humidity);
     
-    // Soil Moisture
+    
     display->printf("Soil: %d %%\n", soilMoisture);
     
-    // Water Level
+    
     display->print(F("Water: "));
     display->println(waterLevel);
     
-    // Rain Status
+    
     display->printf("Rain: %s\n", rain ? "YES" : "NO");
     
-    // Pump Status
+    
     display->printf("Pump: %s\n", pumpActive ? "ON" : "OFF");
     
-    // WiFi Status
+    
     display->printf("WiFi: %s\n", wifiConnected ? "OK" : "FAIL");
     
-    // Display everything on the screen
+    
     display->display();
 }
 
