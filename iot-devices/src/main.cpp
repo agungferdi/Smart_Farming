@@ -28,6 +28,13 @@ int sensorValue = 0; // Variable to store sensor value
 #define RELAY_PIN 17 // GPIO17 for relay control
 // Rain sensor (MH-RD) configuration
 #define RAIN_SENSOR_PIN 18 // GPIO18 for digital rain detection
+// Water level sensor configuration
+#define WATER_LEVEL_PIN 34 // GPIO34 for water level sensor (analog - ADC capable)
+
+// Water level calibration values based on actual sensor readings
+#define WATER_DRY_VALUE 0        // Sensor value when dry (no water)
+#define WATER_WET_VALUE 1050     // Sensor value when sensor is fully submerged
+#define SENSOR_HEIGHT_CM 5       // Actual height of your sensor in cm
 
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -43,6 +50,8 @@ float humidity = 0.0;
 int soilMoistureValue = 0;
 int soilMoisturePercent = 0;  // New variable for percentage
 bool rainDetected = false;    // Rain sensor reading
+int waterLevelValue = 0;      // Raw water level reading
+String waterLevelStatus = ""; // Water level status (Low/Medium/High)
 bool sensorDataValid = false;
 
 // Relay control variables
@@ -51,7 +60,7 @@ bool lastRelayState = false;
 
 // Automation thresholds
 const int SOIL_MOISTURE_THRESHOLD = 20;  // 0-20% soil moisture triggers pump
-const float TEMPERATURE_THRESHOLD = 35.0; // Temperature must be >= 35°C
+const float TEMPERATURE_THRESHOLD = 33.0; // Temperature must be >= 33°C
 
 // Soil moisture calibration values
 const int DRY_VALUE = 4095;    // 0% moisture (completely dry)
@@ -63,6 +72,8 @@ void updateOLEDDisplay();
 int readSoilMoisture();
 int convertToPercentage(int rawValue);
 bool readRainSensor();
+int readWaterLevel();
+String getWaterLevelStatus(int rawValue);
 void readSensorData();
 void controlRelay();
 bool sendSensorData();
@@ -90,7 +101,7 @@ void setup()
 
   // Initialize sensors
   Serial.println("Initializing sensors...");
-  Serial.println("DHT11 on GPIO16, Soil moisture on GPIO35, Relay on GPIO17, Rain sensor on GPIO18, OLED on SDA21/SCL22");
+  Serial.println("DHT11 on GPIO16, Soil moisture on GPIO35, Relay on GPIO17, Rain sensor on GPIO18, Water level on GPIO34, OLED on SDA21/SCL22");
 
   dht.begin();
 
@@ -98,10 +109,13 @@ void setup()
   Serial.println("Testing sensors...");
   int testSoilValue = readSoilMoisture();
   bool testRainValue = readRainSensor();
+  int testWaterValue = readWaterLevel();
   Serial.print("Initial soil moisture reading: ");
   Serial.println(testSoilValue);
   Serial.print("Initial rain sensor reading: ");
   Serial.println(testRainValue ? "Rain detected" : "No rain");
+  Serial.print("Initial water level reading: ");
+  Serial.println(testWaterValue);
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to WiFi");
@@ -171,6 +185,33 @@ bool readRainSensor()
   return isRaining;
 }
 
+int readWaterLevel()
+{
+  // Read sensor value
+  int rawValue = analogRead(WATER_LEVEL_PIN);
+  
+  // Debug output with raw value
+  Serial.printf("Water Level - Raw Value: %d | Status: %s\n", 
+                rawValue, getWaterLevelStatus(rawValue).c_str());
+  
+  return rawValue;
+}
+
+String getWaterLevelStatus(int rawValue)
+{
+  // Determine water level status based on raw value
+  String status;
+  if (rawValue < 350) {
+    status = "Low";
+  } else if (rawValue < 400) {
+    status = "Medium";
+  } else {
+    status = "High";
+  }
+  
+  return status;
+}
+
 void readSensorData()
 {
   float h = dht.readHumidity();
@@ -185,12 +226,24 @@ void readSensorData()
   // Read rain sensor
   bool isRaining = readRainSensor();
 
-  // Debug: Print both raw and percentage values
+  // Read water level sensor
+  int waterValue = readWaterLevel();
+  
+  // Get water level status
+  String waterStatus = getWaterLevelStatus(waterValue);
+
+  // Debug: Print both raw and status values
   Serial.print("Raw analog reading from soil sensor: ");
   Serial.print(soilValue);
   Serial.print(" (");
   Serial.print(soilPercent);
   Serial.println("% moisture)");
+  
+  Serial.print("Raw analog reading from water level sensor: ");
+  Serial.print(waterValue);
+  Serial.print(" (Status: ");
+  Serial.print(waterStatus);
+  Serial.println(")");
 
   if (isnan(h) || isnan(t))
   {
@@ -206,11 +259,20 @@ void readSensorData()
     return;
   }
 
+  if (waterValue < 0 || waterValue > 4095)
+  {
+    Serial.println("Invalid water level reading!");
+    sensorDataValid = false;
+    return;
+  }
+
   temperature = t;
   humidity = h;
   soilMoistureValue = soilValue;          // Keep raw value for debugging
   soilMoisturePercent = soilPercent;      // Store percentage for database
   rainDetected = isRaining;               // Store rain detection status
+  waterLevelValue = waterValue;           // Keep raw value for debugging
+  waterLevelStatus = waterStatus;         // Store status for database
   sensorDataValid = true;
 
   Serial.print("Humidity: ");
@@ -222,6 +284,9 @@ void readSensorData()
   Serial.print("Soil Moisture: ");
   Serial.print(soilPercent);
   Serial.print("%\t");
+  Serial.print("Water Level: ");
+  Serial.print(waterStatus);
+  Serial.print("\t");
   Serial.print("Rain: ");
   Serial.println(isRaining ? "true" : "false");
 }
@@ -308,6 +373,7 @@ bool sendSensorData()
   doc["humidity"] = humidity;
   doc["soil_moisture"] = soilMoisturePercent;
   doc["rain_detected"] = rainDetected;
+  doc["water_level"] = waterLevelStatus;  // Send status instead of percentage
 
   String jsonString;
   serializeJson(doc, jsonString);
@@ -516,6 +582,10 @@ void updateOLEDDisplay()
   display.print(F("Soil: "));
   display.print(soilMoisturePercent);
   display.println(F(" %"));
+  
+  // Water Level
+  display.print(F("Water: "));
+  display.println(waterLevelStatus);
   
   // Rain Status
   display.print(F("Rain: "));
