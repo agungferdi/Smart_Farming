@@ -4,7 +4,15 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "docker:build": "docker build -t smart-farming-backend .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env smart-farming-backend",
+    "docker:dev": "docker-compose up --build",
+    "docker:dev:down": "docker-compose down",
+    "docker:dev:logs": "docker-compose logs -f iot-backend",
+    "docker:dev:rebuild": "docker-compose down && docker-compose up --build",
+    "docker:prod:build": "docker build --target production -t smart-farming-backend:prod .",
+    "docker:clean": "docker system prune -f && docker volume prune -f"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.0",

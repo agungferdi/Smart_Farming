@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # Smart Farming IoT Backend Service
+  iot-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder # Use builder stage for development
+    container_name: smart-farming-backend-dev
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+    env_file:
+      - .env
+    volumes:
+      # Mount source code for hot reload
+      - .:/app
+      # Use named volume for node_modules to avoid conflicts
+      - node_modules:/app/node_modules
+      # Mount Prisma directory
+      - ./prisma:/app/prisma
+    working_dir: /app
+    command: npm run dev
+    networks:
+      - iot-network
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Local PostgreSQL for development (if you want to test without Supabase)
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: smart-farming-postgres-dev
+  #   environment:
+  #     POSTGRES_DB: smart_farming_dev
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - iot-network
+  #   restart: unless-stopped
+
+volumes:
+  node_modules:
+  # postgres_data:  # Uncomment if using local postgres
+
+networks:
+  iot-network:
+    driver: bridge
