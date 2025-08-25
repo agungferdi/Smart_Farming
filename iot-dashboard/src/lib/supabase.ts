@@ -12,6 +12,7 @@ export interface SensorData {
   humidity: number
   soil_moisture: number
   rain_detected: boolean
+  water_level: string;
   created_at: string
 }
 

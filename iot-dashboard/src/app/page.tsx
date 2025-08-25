@@ -1,16 +1,17 @@
-'use client'
+'use client';
 
-import { useSensorData } from '@/hooks/useSensorData'
-import { TimeSeriesChart } from '@/components/TimeSeriesChart'
-import { IndividualTimeSeriesChart } from '@/components/IndividualTimeSeriesChart'
-import { StatsCard } from '@/components/StatsCard'
-import { RelayLogCard } from '@/components/RelayLogCard'
-import { RainStatusCard } from '@/components/RainStatusCard'
-import { RefreshCw, Database, Wifi, Droplets } from 'lucide-react'
-import { format } from 'date-fns'
+import { useSensorData } from '@/hooks/useSensorData';
+import { TimeSeriesChart } from '@/components/TimeSeriesChart';
+import { IndividualTimeSeriesChart } from '@/components/IndividualTimeSeriesChart';
+import { StatsCard } from '@/components/StatsCard';
+import { RelayLogCard } from '@/components/RelayLogCard';
+import { RainStatusCard } from '@/components/RainStatusCard';
+import { WaterLevelStatusCard } from '@/components/WaterLevelStatusCard';
+import { RefreshCw, Database, Droplets } from 'lucide-react';
+import { format } from 'date-fns';
 
 export default function Dashboard() {
-  const { data, loading, error, refetch } = useSensorData(200)
+  const { data, loading, error, refetch } = useSensorData(200);
 
   if (loading) {
     return (
@@ -20,7 +21,7 @@ export default function Dashboard() {
           <p className="text-gray-600">Loading sensor data...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -28,8 +29,10 @@ export default function Dashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Database className="h-8 w-8 mx-auto mb-4 text-red-500" />
-          <p className="text-red-600 mb-4">Error loading data: {error}</p>
-          <button 
+          <p className="text-red-600 mb-4">
+            Error loading data: {error}
+          </p>
+          <button
             onClick={refetch}
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
           >
@@ -37,7 +40,7 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -53,15 +56,23 @@ export default function Dashboard() {
                   Smart Irrigation Dashboard
                 </h1>
                 <p className="text-sm text-gray-500">
-                  Real-time monitoring with automated water pump control and rain detection
+                  Real-time monitoring with automated water pump
+                  control and rain detection
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
-                <div className="text-sm text-gray-500">Last updated</div>
+                <div className="text-sm text-gray-500">
+                  Last updated
+                </div>
                 <div className="text-sm font-medium text-gray-900">
-                  {data.length > 0 ? format(new Date(data[0].created_at), 'MMM dd, HH:mm:ss') : format(new Date(), 'MMM dd, HH:mm:ss')}
+                  {data.length > 0
+                    ? format(
+                        new Date(data[0].created_at),
+                        'MMM dd, HH:mm:ss',
+                      )
+                    : format(new Date(), 'MMM dd, HH:mm:ss')}
                 </div>
               </div>
               <button
@@ -81,21 +92,22 @@ export default function Dashboard() {
         {/* Stats Cards */}
         <StatsCard data={data} />
 
-        {/* New Status Cards Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <div className="space-y-6">
             <RainStatusCard data={data} />
-            {/* Environmental Chart below Rain Status */}
-            <div className="bg-white rounded-lg shadow-md p-6 border h-96">
-              <TimeSeriesChart 
-                data={data} 
-                title="Environmental Sensor Data Over Time" 
-              />
-            </div>
+            <WaterLevelStatusCard data={data} />
           </div>
-          <RelayLogCard />
+          <div className="lg:col-span-2">
+            <RelayLogCard />
+          </div>
         </div>
 
+        <div className="bg-white rounded-lg shadow-md p-6 border h-96 mb-8">
+          <TimeSeriesChart
+            data={data}
+            title="Environmental Sensor Data Over Time"
+          />
+        </div>
         {/* Individual Sensor Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Temperature Over Time */}
@@ -131,50 +143,111 @@ export default function Dashboard() {
             />
           </div>
         </div>
-
         {/* Data Summary */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8 border">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900">Data Summary</h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <h3 className="text-lg font-semibold mb-4 text-gray-900">
+            Data Summary
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="text-center">
-              <span className="block text-gray-700 text-sm font-medium">Total Records</span>
-              <span className="block font-bold text-lg text-gray-900">{data.length}</span>
+              <span className="block text-gray-700 text-sm font-medium">
+                Total Records
+              </span>
+              <span className="block font-bold text-lg text-gray-900">
+                {data.length}
+              </span>
             </div>
             <div className="text-center">
-              <span className="block text-gray-700 text-sm font-medium">Date Range</span>
+              <span className="block text-gray-700 text-sm font-medium">
+                Date Range
+              </span>
               <span className="block font-semibold text-sm text-gray-900">
-                {data.length > 0 
-                  ? `${format(new Date(data[data.length - 1].created_at), 'MMM dd')} - ${format(new Date(data[0].created_at), 'MMM dd')}`
-                  : 'No data'
-                }
+                {data.length > 0
+                  ? `${format(
+                      new Date(data[data.length - 1].created_at),
+                      'MMM dd',
+                    )} - ${format(
+                      new Date(data[0].created_at),
+                      'MMM dd',
+                    )}`
+                  : 'No data'}
               </span>
             </div>
             {data.length > 0 && (
               <>
                 <div className="text-center">
-                  <span className="block text-gray-700 text-sm font-medium">Temperature Range</span>
+                  <span className="block text-gray-700 text-sm font-medium">
+                    Temperature Range
+                  </span>
                   <span className="block font-semibold text-sm text-gray-900">
-                    {Math.min(...data.map((d) => d.temperature)).toFixed(1)}°C - {Math.max(...data.map((d) => d.temperature)).toFixed(1)}°C
+                    {Math.min(
+                      ...data.map((d) => d.temperature),
+                    ).toFixed(1)}
+                    °C -{' '}
+                    {Math.max(
+                      ...data.map((d) => d.temperature),
+                    ).toFixed(1)}
+                    °C
                   </span>
                 </div>
                 <div className="text-center">
-                  <span className="block text-gray-700 text-sm font-medium">Humidity Range</span>
+                  <span className="block text-gray-700 text-sm font-medium">
+                    Humidity Range
+                  </span>
                   <span className="block font-semibold text-sm text-gray-900">
-                    {Math.min(...data.map((d) => d.humidity)).toFixed(1)}% - {Math.max(...data.map((d) => d.humidity)).toFixed(1)}%
+                    {Math.min(...data.map((d) => d.humidity)).toFixed(
+                      1,
+                    )}
+                    % -{' '}
+                    {Math.max(...data.map((d) => d.humidity)).toFixed(
+                      1,
+                    )}
+                    %
                   </span>
                 </div>
                 <div className="text-center">
-                  <span className="block text-gray-700 text-sm font-medium">Soil Moisture Range</span>
+                  <span className="block text-gray-700 text-sm font-medium">
+                    Soil Moisture Range
+                  </span>
                   <span className="block font-semibold text-sm text-gray-900">
-                    {Math.min(...data.map((d) => d.soil_moisture))}% - {Math.max(...data.map((d) => d.soil_moisture))}%
+                    {Math.min(...data.map((d) => d.soil_moisture))}% -{' '}
+                    {Math.max(...data.map((d) => d.soil_moisture))}%
+                  </span>
+                </div>
+                <div className="text-center">
+                  <span className="block text-gray-700 text-sm font-medium">
+                    Water Level Status
+                  </span>
+                  <span className="block font-semibold text-sm text-gray-900">
+                    {(() => {
+                      const waterLevelCounts = data.reduce(
+                        (acc, item) => {
+                          acc[item.water_level] =
+                            (acc[item.water_level] || 0) + 1;
+                          return acc;
+                        },
+                        {} as Record<string, number>,
+                      );
+                      const mostCommon = Object.entries(
+                        waterLevelCounts,
+                      ).reduce((a, b) =>
+                        waterLevelCounts[a[0]] >
+                        waterLevelCounts[b[0]]
+                          ? a
+                          : b,
+                      );
+                      const percentage = Math.round(
+                        (mostCommon[1] / data.length) * 100,
+                      );
+                      return `${mostCommon[0]} (${percentage}%)`;
+                    })()}
                   </span>
                 </div>
               </>
             )}
           </div>
         </div>
-
       </main>
     </div>
-  )
+  );
 }
