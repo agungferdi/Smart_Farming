@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { RelayLogController } from '../controllers/relayLog.controller';
+import { RelayLogController } from '../controllers/relayLog.controller.js';
 
 const relayLogRouter = new Hono();
 const relayLogController = new RelayLogController();

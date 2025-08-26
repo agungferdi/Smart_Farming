@@ -1,11 +1,11 @@
 import type { Context } from 'hono';
-import { SensorDataService } from '../services/sensorData.service';
+import { SensorDataService } from '../services/sensorData.service.js';
 import {
   createSensorDataSchema,
   sensorDataQuerySchema,
-} from '../schemas/sensorData.schema';
-import { sendResponse } from '../utils/responseHandler';
-import { sendError } from '../utils/errorHandler';
+} from '../schemas/sensorData.schema.js';
+import { sendResponse } from '../utils/responseHandler.js';
+import { sendError } from '../utils/errorHandler.js';
 
 export class SensorDataController {
   private sensorDataService: SensorDataService;

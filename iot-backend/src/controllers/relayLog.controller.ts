@@ -1,11 +1,11 @@
 import type { Context } from 'hono';
-import { RelayLogService } from '../services/relayLog.service';
+import { RelayLogService } from '../services/relayLog.service.js';
 import {
   createRelayLogSchema,
   relayLogQuerySchema,
-} from '../schemas/relayLog.schema';
-import { sendResponse } from '../utils/responseHandler';
-import { sendError } from '../utils/errorHandler';
+} from '../schemas/relayLog.schema.js';
+import { sendResponse } from '../utils/responseHandler.js';
+import { sendError } from '../utils/errorHandler.js';
 
 export class RelayLogController {
   private relayLogService: RelayLogService;

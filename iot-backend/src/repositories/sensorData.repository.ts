@@ -1,8 +1,8 @@
-import { prisma } from '../database/connection';
+import { prisma } from '../database/connection.js';
 import type {
   CreateSensorDataInput,
   SensorDataQuery,
-} from '../schemas/sensorData.schema';
+} from '../schemas/sensorData.schema.js';
 
 export class SensorDataRepository {
   // Create new sensor data record

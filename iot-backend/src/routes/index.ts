@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
-import { sensorDataRouter } from './sensorData.routes';
-import { relayLogRouter } from './relayLog.routes';
-import { prisma } from '../database/connection';
+import { sensorDataRouter } from './sensorData.routes.js';
+import { relayLogRouter } from './relayLog.routes.js';
+import { prisma } from '../database/connection.js';
 
 const apiRouter = new Hono();
 

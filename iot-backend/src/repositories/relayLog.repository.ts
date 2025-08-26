@@ -1,8 +1,8 @@
-import { prisma } from '../database/connection';
+import { prisma } from '../database/connection.js';
 import type {
   CreateRelayLogInput,
   RelayLogQuery,
-} from '../schemas/relayLog.schema';
+} from '../schemas/relayLog.schema.js';
 
 export class RelayLogRepository {
   // Create new relay log record

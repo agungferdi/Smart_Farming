@@ -2,8 +2,8 @@ import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { apiRouter } from './routes/index';
-import { disconnectDatabase } from './database/connection';
+import { apiRouter } from './routes/index.js';
+import { disconnectDatabase } from './database/connection.js';
 
 const app = new Hono();
 

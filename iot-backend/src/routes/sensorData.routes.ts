@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { SensorDataController } from '../controllers/sensorData.controller';
+import { SensorDataController } from '../controllers/sensorData.controller.js';
 
 const sensorDataRouter = new Hono();
 const sensorDataController = new SensorDataController();

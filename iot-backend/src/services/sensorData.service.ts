@@ -1,9 +1,9 @@
-import { SensorDataRepository } from '../repositories/sensorData.repository';
+import { SensorDataRepository } from '../repositories/sensorData.repository.js';
 import type {
   CreateSensorDataInput,
   SensorDataQuery,
-} from '../schemas/sensorData.schema';
-import type { PaginatedResponse } from '../schemas/common.schema';
+} from '../schemas/sensorData.schema.js';
+import type { PaginatedResponse } from '../schemas/common.schema.js';
 
 export class SensorDataService {
   private sensorDataRepository: SensorDataRepository;

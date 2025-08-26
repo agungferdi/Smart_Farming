@@ -1,9 +1,9 @@
-import { RelayLogRepository } from '../repositories/relayLog.repository';
+import { RelayLogRepository } from '../repositories/relayLog.repository.js';
 import type {
   CreateRelayLogInput,
   RelayLogQuery,
-} from '../schemas/relayLog.schema';
-import type { PaginatedResponse } from '../schemas/common.schema';
+} from '../schemas/relayLog.schema.js';
+import type { PaginatedResponse } from '../schemas/common.schema.js';
 
 export class RelayLogService {
   private relayLogRepository: RelayLogRepository;
