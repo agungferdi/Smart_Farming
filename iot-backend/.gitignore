@@ -29,3 +29,4 @@ lerna-debug.log*
 
 /src/generated/prisma
 dist/
+.vercel
