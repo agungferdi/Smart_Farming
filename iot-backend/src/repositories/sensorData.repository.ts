@@ -7,19 +7,20 @@ import type {
 export class SensorDataRepository {
   // Create new sensor data record
   async create(data: CreateSensorDataInput) {
-    return await prisma.sensor_data.create({
+    return await prisma.sensorData.create({
       data: {
         temperature: data.temperature,
         humidity: data.humidity,
         soil_moisture: data.soil_moisture,
         rain_detected: data.rain_detected,
+        water_level: data.water_level,
       },
     });
   }
 
   // Get latest sensor data
   async getLatest() {
-    return await prisma.sensor_data.findFirst({
+    return await prisma.sensorData.findFirst({
       orderBy: {
         created_at: 'desc',
       },
@@ -42,7 +43,7 @@ export class SensorDataRepository {
     }
 
     const [data, total] = await Promise.all([
-      prisma.sensor_data.findMany({
+      prisma.sensorData.findMany({
         where,
         orderBy: {
           created_at: 'desc',
@@ -50,7 +51,7 @@ export class SensorDataRepository {
         take: query.limit,
         skip: query.offset,
       }),
-      prisma.sensor_data.count({ where }),
+      prisma.sensorData.count({ where }),
     ]);
 
     return { data, total };
@@ -58,7 +59,7 @@ export class SensorDataRepository {
 
   // Get sensor data by ID
   async getById(id: bigint) {
-    return await prisma.sensor_data.findUnique({
+    return await prisma.sensorData.findUnique({
       where: { id },
     });
   }
@@ -67,7 +68,7 @@ export class SensorDataRepository {
   async getStats(hours: number = 24) {
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
 
-    const stats = await prisma.sensor_data.aggregate({
+    const stats = await prisma.sensorData.aggregate({
       where: {
         created_at: {
           gte: since,
@@ -93,7 +94,7 @@ export class SensorDataRepository {
       },
     });
 
-    const rainCount = await prisma.sensor_data.count({
+    const rainCount = await prisma.sensorData.count({
       where: {
         created_at: {
           gte: since,
@@ -114,7 +115,7 @@ export class SensorDataRepository {
       Date.now() - daysToKeep * 24 * 60 * 60 * 1000,
     );
 
-    return await prisma.sensor_data.deleteMany({
+    return await prisma.sensorData.deleteMany({
       where: {
         created_at: {
           lt: cutoffDate,

@@ -128,6 +128,8 @@ export class RelayLogController {
         trigger_reason,
         soil_moisture,
         temperature,
+        rain_detected,
+        water_level,
       } = body;
 
       if (typeof relay_status !== 'boolean') {
@@ -156,6 +158,8 @@ export class RelayLogController {
         trigger_reason,
         soil_moisture,
         temperature,
+        rain_detected,
+        water_level,
       );
 
       const statusCode = result.success ? 201 : 400;

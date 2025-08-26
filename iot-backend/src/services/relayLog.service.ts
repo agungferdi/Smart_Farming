@@ -173,8 +173,10 @@ export class RelayLogService {
   async logRelayStateChange(
     relayStatus: boolean,
     triggerReason: string,
-    soilMoisture?: number,
-    temperature?: number,
+    soilMoisture: number,
+    temperature: number,
+    rainDetected: boolean,
+    waterLevel: string,
   ) {
     try {
       // Get current status to check if this is actually a state change
@@ -208,6 +210,8 @@ export class RelayLogService {
         trigger_reason: triggerReason,
         soil_moisture: soilMoisture,
         temperature: temperature,
+        rainDetected: rainDetected,
+        water_level: waterLevel,
       };
 
       const result = await this.createRelayLog(logData);

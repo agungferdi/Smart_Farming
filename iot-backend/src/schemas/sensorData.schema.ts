@@ -18,6 +18,7 @@ export const createSensorDataSchema = z.object({
     .max(100)
     .describe('Soil moisture percentage'),
   rain_detected: z.boolean().describe('Whether rain is detected'),
+  water_level: z.string().describe('Water level status'),
 });
 
 export const sensorDataResponseSchema = z.object({

@@ -7,19 +7,21 @@ import type {
 export class RelayLogRepository {
   // Create new relay log record
   async create(data: CreateRelayLogInput) {
-    return await prisma.relay_log.create({
+    return await prisma.relayLog.create({
       data: {
         relay_status: data.relay_status,
         trigger_reason: data.trigger_reason,
         soil_moisture: data.soil_moisture,
         temperature: data.temperature,
+        rain_detected: data.rainDetected,
+        water_level: data.water_level,
       },
     });
   }
 
   // Get latest relay log
   async getLatest() {
-    return await prisma.relay_log.findFirst({
+    return await prisma.relayLog.findFirst({
       orderBy: {
         created_at: 'desc',
       },
@@ -47,7 +49,7 @@ export class RelayLogRepository {
     }
 
     const [data, total] = await Promise.all([
-      prisma.relay_log.findMany({
+      prisma.relayLog.findMany({
         where,
         orderBy: {
           created_at: 'desc',
@@ -55,7 +57,7 @@ export class RelayLogRepository {
         take: query.limit,
         skip: query.offset,
       }),
-      prisma.relay_log.count({ where }),
+      prisma.relayLog.count({ where }),
     ]);
 
     return { data, total };
@@ -63,7 +65,7 @@ export class RelayLogRepository {
 
   // Get relay log by ID
   async getById(id: bigint) {
-    return await prisma.relay_log.findUnique({
+    return await prisma.relayLog.findUnique({
       where: { id },
     });
   }
@@ -73,14 +75,14 @@ export class RelayLogRepository {
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
 
     const [totalCount, onCount, offCount] = await Promise.all([
-      prisma.relay_log.count({
+      prisma.relayLog.count({
         where: {
           created_at: {
             gte: since,
           },
         },
       }),
-      prisma.relay_log.count({
+      prisma.relayLog.count({
         where: {
           created_at: {
             gte: since,
@@ -88,7 +90,7 @@ export class RelayLogRepository {
           relay_status: true,
         },
       }),
-      prisma.relay_log.count({
+      prisma.relayLog.count({
         where: {
           created_at: {
             gte: since,
@@ -99,18 +101,12 @@ export class RelayLogRepository {
     ]);
 
     // Get average soil moisture and temperature when relay was activated
-    const avgWhenOn = await prisma.relay_log.aggregate({
+    const avgWhenOn = await prisma.relayLog.aggregate({
       where: {
         created_at: {
           gte: since,
         },
         relay_status: true,
-        soil_moisture: {
-          not: null,
-        },
-        temperature: {
-          not: null,
-        },
       },
       _avg: {
         soil_moisture: true,
@@ -139,7 +135,7 @@ export class RelayLogRepository {
       Date.now() - daysToKeep * 24 * 60 * 60 * 1000,
     );
 
-    return await prisma.relay_log.deleteMany({
+    return await prisma.relayLog.deleteMany({
       where: {
         created_at: {
           lt: cutoffDate,
