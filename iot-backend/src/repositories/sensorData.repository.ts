@@ -12,6 +12,7 @@ export class SensorDataRepository {
         temperature: data.temperature,
         humidity: data.humidity,
         soil_moisture: data.soil_moisture,
+        soil_temperature: data.soil_temperature,
         rain_detected: data.rain_detected,
         water_level: data.water_level,
       },
@@ -78,16 +79,19 @@ export class SensorDataRepository {
         temperature: true,
         humidity: true,
         soil_moisture: true,
+        soil_temperature: true,
       },
       _min: {
         temperature: true,
         humidity: true,
         soil_moisture: true,
+        soil_temperature: true,
       },
       _max: {
         temperature: true,
         humidity: true,
         soil_moisture: true,
+        soil_temperature: true,
       },
       _count: {
         id: true,

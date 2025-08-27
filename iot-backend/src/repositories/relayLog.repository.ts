@@ -11,10 +11,10 @@ export class RelayLogRepository {
       data: {
         relay_status: data.relay_status,
         trigger_reason: data.trigger_reason,
-        soil_moisture: data.soil_moisture,
-        temperature: data.temperature,
-        rain_detected: data.rainDetected,
-        water_level: data.water_level,
+        sensor_reading_id: data.sensor_reading_id,
+      },
+      include: {
+        sensorData: true, 
       },
     });
   }
@@ -24,6 +24,9 @@ export class RelayLogRepository {
     return await prisma.relayLog.findFirst({
       orderBy: {
         created_at: 'desc',
+      },
+      include: {
+        sensorData: true, 
       },
     });
   }
@@ -56,6 +59,9 @@ export class RelayLogRepository {
         },
         take: query.limit,
         skip: query.offset,
+        include: {
+          sensorData: true, 
+        },
       }),
       prisma.relayLog.count({ where }),
     ]);
@@ -67,6 +73,9 @@ export class RelayLogRepository {
   async getById(id: bigint) {
     return await prisma.relayLog.findUnique({
       where: { id },
+      include: {
+        sensorData: true, 
+      },
     });
   }
 
@@ -100,26 +109,37 @@ export class RelayLogRepository {
       }),
     ]);
 
-    // Get average soil moisture and temperature when relay was activated
-    const avgWhenOn = await prisma.relayLog.aggregate({
+    // Get average sensor values when relay was activated (from related sensor data)
+    const relayLogsWithSensorData = await prisma.relayLog.findMany({
       where: {
         created_at: {
           gte: since,
         },
         relay_status: true,
       },
-      _avg: {
-        soil_moisture: true,
-        temperature: true,
+      include: {
+        sensorData: true,
       },
     });
+
+    const avgWhenOn = relayLogsWithSensorData.length > 0 ? {
+      soil_moisture: relayLogsWithSensorData.reduce((sum, log) => sum + log.sensorData.soil_moisture, 0) / relayLogsWithSensorData.length,
+      temperature: relayLogsWithSensorData.reduce((sum, log) => sum + Number(log.sensorData.temperature), 0) / relayLogsWithSensorData.length,
+      soil_temperature: relayLogsWithSensorData
+        .filter(log => log.sensorData.soil_temperature !== null)
+        .reduce((sum, log) => sum + Number(log.sensorData.soil_temperature!), 0) / relayLogsWithSensorData.filter(log => log.sensorData.soil_temperature !== null).length || null,
+    } : { soil_moisture: null, temperature: null, soil_temperature: null };
+
+    const rainCount = relayLogsWithSensorData.filter(log => log.sensorData.rain_detected).length;
 
     return {
       total_operations: totalCount,
       on_count: onCount,
       off_count: offCount,
-      avg_soil_moisture_when_on: avgWhenOn._avg.soil_moisture,
-      avg_temperature_when_on: avgWhenOn._avg.temperature,
+      rain_detection_count: rainCount,
+      avg_soil_moisture_when_on: avgWhenOn.soil_moisture,
+      avg_temperature_when_on: avgWhenOn.temperature,
+      avg_soil_temperature_when_on: avgWhenOn.soil_temperature,
     };
   }
 

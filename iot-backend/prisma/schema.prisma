@@ -11,31 +11,36 @@ datasource db {
 }
 
 model SensorData {
-  id            BigInt   @id @default(autoincrement())
-  temperature   Decimal  @db.Decimal(5, 2) /// Temperature reading from DHT11 sensor in Celsius
-  humidity      Decimal  @db.Decimal(5, 2) /// Humidity reading from DHT11 sensor in percentage
-  soil_moisture Int      /// Soil moisture reading in percentage (0-100%)
-  rain_detected Boolean  /// Rain detection status from MH-RD sensor
-  water_level   String   /// Water level classification: "Low", "Medium", or "High"
-  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  id               BigInt     @id @default(autoincrement())
+  temperature      Decimal    @db.Decimal(5, 2) /// Temperature reading from DHT11 sensor in Celsius
+  humidity         Decimal    @db.Decimal(5, 2) /// Humidity reading from DHT11 sensor in percentage
+  soil_moisture    Int        /// Soil moisture reading in percentage (0-100%)
+  soil_temperature Decimal?   @db.Decimal(5, 2) /// Soil temperature reading from DS18B20 sensor in Celsius
+  rain_detected    Boolean    /// Rain detection status from MH-RD sensor
+  water_level      String     /// Water level classification: "Low", "Medium", or "High"
+  created_at       DateTime   @default(now()) @db.Timestamptz(6)
+  
+  // Relation to relay logs
+  relayLogs        RelayLog[]
 
   @@map("sensor-data")
   @@index([created_at(sort: Desc)], name: "idx_sensor_data_created_at")
-  @@index([rain_detected], name: "idx_sensor_data_rain")
-  @@index([water_level], name: "idx_sensor_data_water_level")
+  @@index([soil_moisture], name: "idx_sensor_data_soil_moisture")
+  @@index([soil_temperature], name: "idx_sensor_data_soil_temperature")
 }
 
 model RelayLog {
-  id             BigInt   @id @default(autoincrement())
-  relay_status   Boolean  /// Relay status: true = ON (pump active), false = OFF (pump inactive)
-  trigger_reason String   /// Reason for relay state change
-  soil_moisture  Int      /// Soil moisture percentage at time of relay event
-  temperature    Decimal  @db.Decimal(5, 2) /// Temperature in Celsius at time of relay event
-  rain_detected  Boolean  /// Rain status at time of relay event
-  water_level    String   /// Water level classification at time of relay event: "Low", "Medium", or "High"
-  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  id                   BigInt     @id @default(autoincrement())
+  relay_status         Boolean    /// Relay status: true = ON (pump active), false = OFF (pump inactive)
+  trigger_reason       String     /// Reason for relay state change
+  sensor_reading_id    BigInt     /// Foreign key to sensor data reading
+  created_at           DateTime   @default(now()) @db.Timestamptz(6)
+  
+  // Relation to sensor data
+  sensorData           SensorData @relation(fields: [sensor_reading_id], references: [id], onDelete: Cascade)
 
   @@map("relay-log")
   @@index([created_at(sort: Desc)], name: "idx_relay_log_created_at")
   @@index([relay_status], name: "idx_relay_log_status")
+  @@index([sensor_reading_id], name: "idx_relay_log_sensor_reading")
 }

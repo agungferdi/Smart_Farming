@@ -136,6 +136,8 @@ export class RelayLogService {
               : 0,
           avg_soil_moisture_when_on: stats.avg_soil_moisture_when_on,
           avg_temperature_when_on: stats.avg_temperature_when_on,
+          avg_soil_temperature_when_on: stats.avg_soil_temperature_when_on,
+          rain_detection_count: stats.rain_detection_count,
         },
       };
     } catch (error) {
@@ -173,10 +175,7 @@ export class RelayLogService {
   async logRelayStateChange(
     relayStatus: boolean,
     triggerReason: string,
-    soilMoisture: number,
-    temperature: number,
-    rainDetected: boolean,
-    waterLevel: string,
+    sensorReadingId: bigint,
   ) {
     try {
       // Get current status to check if this is actually a state change
@@ -191,27 +190,10 @@ export class RelayLogService {
         };
       }
 
-      // Validate business logic for relay activation
-      if (
-        relayStatus &&
-        soilMoisture !== undefined &&
-        soilMoisture > 80
-      ) {
-        return {
-          success: false,
-          message:
-            'Cannot activate relay: soil moisture is already high',
-          data: null,
-        };
-      }
-
       const logData: CreateRelayLogInput = {
         relay_status: relayStatus,
         trigger_reason: triggerReason,
-        soil_moisture: soilMoisture,
-        temperature: temperature,
-        rainDetected: rainDetected,
-        water_level: waterLevel,
+        sensor_reading_id: sensorReadingId,
       };
 
       const result = await this.createRelayLog(logData);

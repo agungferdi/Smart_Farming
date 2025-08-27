@@ -5,32 +5,28 @@ export const createRelayLogSchema = z.object({
   trigger_reason: z
     .string()
     .describe('Reason for relay state change'),
-  soil_moisture: z
-    .number()
-    .int()
-    .min(0)
-    .max(100)
-    .describe('Soil moisture at time of change'),
-  temperature: z
-    .number()
-    .min(-50)
-    .max(100)
-    .describe('Temperature at time of change'),
-  rainDetected: z
-    .boolean()
-    .describe('Whether rain was detected at time of change'),
-  water_level: z
-    .string()
-    .describe('Water level classification at time of change'),
+  sensor_reading_id: z
+    .union([z.number(), z.bigint(), z.string()])
+    .transform((val) => BigInt(val))
+    .describe('Reference to sensor data reading ID'),
 });
 
 export const relayLogResponseSchema = z.object({
   id: z.bigint(),
   relay_status: z.boolean(),
-  trigger_reason: z.string().nullable(),
-  soil_moisture: z.number().nullable(),
-  temperature: z.number(),
+  trigger_reason: z.string(),
+  sensor_reading_id: z.bigint(),
   created_at: z.date().nullable(),
+  sensorData: z.object({
+    id: z.bigint(),
+    temperature: z.number(),
+    humidity: z.number(),
+    soil_moisture: z.number(),
+    soil_temperature: z.number().nullable(),
+    rain_detected: z.boolean(),
+    water_level: z.string(),
+    created_at: z.date().nullable(),
+  }).optional(),
 });
 
 export const relayLogQuerySchema = z.object({
