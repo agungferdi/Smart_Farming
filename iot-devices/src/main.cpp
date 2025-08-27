@@ -3,6 +3,7 @@
 #include "utils/SensorCalibration.h"
 #include "sensors/DHT11Sensor.h"
 #include "sensors/SoilMoistureSensor.h"
+// #include "sensors/SoilTemperatureSensor.h"
 #include "sensors/RainSensor.h"
 #include "sensors/WaterLevelSensor.h"
 #include "actuators/RelayController.h"
@@ -20,6 +21,7 @@ void testSensors();
 // Initialize components using calibration constants
 DHT11Sensor dht11(Pins::DHT11_PIN, DHT11Config::DHT_TYPE);
 SoilMoistureSensor soilSensor(Pins::SOIL_MOISTURE_PIN);
+// SoilTemperatureSensor soilTempSensor(Pins::SOIL_TEMP_PIN);
 RainSensor rainSensor(Pins::RAIN_SENSOR_PIN);
 WaterLevelSensor waterSensor(Pins::WATER_LEVEL_PIN);
 RelayController relay(Pins::RELAY_PIN);
@@ -92,6 +94,7 @@ void initializeComponents() {
     
     // Initialize other components
     dht11.begin();
+    // soilTempSensor.begin();
     rainSensor.begin();
     relay.begin();
     
@@ -107,12 +110,14 @@ bool readAllSensors() {
     // Read all sensors
     bool dhtOk = dht11.readData();
     bool soilOk = soilSensor.readData();
+    // bool soilTempOk = soilTempSensor.readData();
     bool rainOk = rainSensor.readData();
     bool waterOk = waterSensor.readData();
     
     // Print debug information
     if (dhtOk) dht11.printDebugInfo();
     if (soilOk) soilSensor.printDebugInfo();
+    // if (soilTempOk) soilTempSensor.printDebugInfo();
     if (rainOk) rainSensor.printDebugInfo();
     if (waterOk) waterSensor.printDebugInfo();
     
@@ -121,9 +126,10 @@ bool readAllSensors() {
     
     if (allValid) {
         // Print summary
-        Serial.printf("Summary - Temp: %.1f°C, Humid: %.1f%%, Soil: %d%%, Water: %s, Rain: %s\n",
+        Serial.printf("Summary - Air: %.1f°C, Humid: %.1f%%, Soil: %d%%, Water: %s, Rain: %s\n",
                       dht11.getTemperature(), dht11.getHumidity(), 
-                      soilSensor.getPercentage(), waterSensor.getStatus().c_str(),
+                      soilSensor.getPercentage(),
+                      waterSensor.getStatus().c_str(),
                       rainSensor.isRainDetected() ? "true" : "false");
     } else {
         Serial.println("❌ Some sensor readings are invalid!");
@@ -134,15 +140,20 @@ bool readAllSensors() {
 
 void controlPump() {
     String reason;
-    relay.control(soilSensor.getPercentage(), dht11.getTemperature(), reason);
+    
+    // FIXED: Only pass soil moisture (removed temperature parameter)
+    relay.control(soilSensor.getPercentage(), reason);
     
     if (relay.hasStateChanged()) {
         relay.printDebugInfo(reason);
         
-        // Send relay log to database
-        uploader.sendRelayLog(relay.isRelayActive(), reason, 
-                             soilSensor.getPercentage(), dht11.getTemperature(), 
-                             rainSensor.isRainDetected());
+        // FIXED: Use normalized schema with sensor_reading_id
+        long lastSensorId = uploader.getLastSensorId();
+        if (lastSensorId > 0) {
+            uploader.sendRelayLog(relay.isRelayActive(), reason, lastSensorId);
+        } else {
+            Serial.println("Warning: No sensor ID available for relay log");
+        }
         
         relay.updateLastState();
     }
@@ -156,12 +167,18 @@ void updateDisplay() {
 }
 
 void sendDataToCloud() {
-    bool success = uploader.sendSensorData(dht11.getTemperature(), dht11.getHumidity(),
-                                          soilSensor.getPercentage(), rainSensor.isRainDetected(),
-                                          waterSensor.getStatus());
+    // FIXED: Now using only available sensors (soil temperature disabled)
+    long sensorId = uploader.sendSensorData(
+        dht11.getTemperature(),
+        dht11.getHumidity(),
+        soilSensor.getPercentage(),
+        // soilTempSensor.getTemperature(), // Disabled - sensor not connected
+        rainSensor.isRainDetected(),
+        waterSensor.getStatus()
+    );
     
-    if (success) {
-        Serial.println("✓ Sensor data sent to database");
+    if (sensorId > 0) {
+        Serial.printf("✓ Sensor data sent to database with ID: %ld\n", sensorId);
     } else {
         Serial.println("✗ Failed to send sensor data");
     }
@@ -173,6 +190,7 @@ void testSensors() {
     // Test each sensor individually
     dht11.readData();
     soilSensor.readData();
+    // soilTempSensor.readData();
     rainSensor.readData();
     waterSensor.readData();
     
