@@ -1,8 +1,8 @@
-import { prisma } from '../database/connection.js';
+import { prisma } from "../database/connection.js";
 import type {
   CreateRelayLogInput,
   RelayLogQuery,
-} from '../schemas/relayLog.schema.js';
+} from "../schemas/relayLog.schema.js";
 
 export class RelayLogRepository {
   // Create new relay log record
@@ -14,7 +14,7 @@ export class RelayLogRepository {
         sensor_reading_id: data.sensor_reading_id,
       },
       include: {
-        sensorData: true, 
+        sensorData: true,
       },
     });
   }
@@ -23,10 +23,10 @@ export class RelayLogRepository {
   async getLatest() {
     return await prisma.relayLog.findFirst({
       orderBy: {
-        created_at: 'desc',
+        created_at: "desc",
       },
       include: {
-        sensorData: true, 
+        sensorData: true,
       },
     });
   }
@@ -55,12 +55,12 @@ export class RelayLogRepository {
       prisma.relayLog.findMany({
         where,
         orderBy: {
-          created_at: 'desc',
+          created_at: "desc",
         },
         take: query.limit,
         skip: query.offset,
         include: {
-          sensorData: true, 
+          sensorData: true,
         },
       }),
       prisma.relayLog.count({ where }),
@@ -74,7 +74,7 @@ export class RelayLogRepository {
     return await prisma.relayLog.findUnique({
       where: { id },
       include: {
-        sensorData: true, 
+        sensorData: true,
       },
     });
   }
@@ -122,15 +122,40 @@ export class RelayLogRepository {
       },
     });
 
-    const avgWhenOn = relayLogsWithSensorData.length > 0 ? {
-      soil_moisture: relayLogsWithSensorData.reduce((sum, log) => sum + log.sensorData.soil_moisture, 0) / relayLogsWithSensorData.length,
-      temperature: relayLogsWithSensorData.reduce((sum, log) => sum + Number(log.sensorData.temperature), 0) / relayLogsWithSensorData.length,
-      soil_temperature: relayLogsWithSensorData
-        .filter(log => log.sensorData.soil_temperature !== null)
-        .reduce((sum, log) => sum + Number(log.sensorData.soil_temperature!), 0) / relayLogsWithSensorData.filter(log => log.sensorData.soil_temperature !== null).length || null,
-    } : { soil_moisture: null, temperature: null, soil_temperature: null };
+    const avgWhenOn =
+      relayLogsWithSensorData.length > 0
+        ? {
+            soil_moisture:
+              relayLogsWithSensorData.reduce(
+                (totalMoisture, log) =>
+                  totalMoisture + log.sensorData.soil_moisture,
+                0
+              ) / relayLogsWithSensorData.length,
+            temperature:
+              relayLogsWithSensorData.reduce(
+                (totalTemp, log) =>
+                  totalTemp + Number(log.sensorData.temperature),
+                0
+              ) / relayLogsWithSensorData.length,
+            soil_temperature: (() => {
+              const logsWithSoilTemp = relayLogsWithSensorData.filter(
+                (log) => log.sensorData.soil_temperature !== null
+              );
+              if (logsWithSoilTemp.length === 0) return null;
+              return (
+                logsWithSoilTemp.reduce(
+                  (totalSoilTemp, log) =>
+                    totalSoilTemp + Number(log.sensorData.soil_temperature!),
+                  0
+                ) / logsWithSoilTemp.length
+              );
+            })(),
+          }
+        : { soil_moisture: null, temperature: null, soil_temperature: null };
 
-    const rainCount = relayLogsWithSensorData.filter(log => log.sensorData.rain_detected).length;
+    const rainCount = relayLogsWithSensorData.filter(
+      (log) => log.sensorData.rain_detected
+    ).length;
 
     return {
       total_operations: totalCount,
@@ -151,9 +176,7 @@ export class RelayLogRepository {
 
   // Delete old records (cleanup)
   async deleteOldRecords(daysToKeep: number = 30) {
-    const cutoffDate = new Date(
-      Date.now() - daysToKeep * 24 * 60 * 60 * 1000,
-    );
+    const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000);
 
     return await prisma.relayLog.deleteMany({
       where: {

@@ -4,6 +4,7 @@
 #include "sensors/DHT11Sensor.h"
 #include "sensors/SoilMoistureSensor.h"
 // #include "sensors/SoilTemperatureSensor.h"
+// kljsdkfljweklfrkljwelkkjljskdf
 #include "sensors/RainSensor.h"
 #include "sensors/WaterLevelSensor.h"
 #include "actuators/RelayController.h"
@@ -20,7 +21,7 @@ void testSensors();
 
 // Initialize components using calibration constants
 DHT11Sensor dht11(Pins::DHT11_PIN, DHT11Config::DHT_TYPE);
-SoilMoistureSensor soilSensor(Pins::SOIL_MOISTURE_PIN);
+SoilMoistureSensor soilSensor(Pins::SOIL_MOISTURE_PIN); 
 // SoilTemperatureSensor soilTempSensor(Pins::SOIL_TEMP_PIN);
 RainSensor rainSensor(Pins::RAIN_SENSOR_PIN);
 WaterLevelSensor waterSensor(Pins::WATER_LEVEL_PIN);
