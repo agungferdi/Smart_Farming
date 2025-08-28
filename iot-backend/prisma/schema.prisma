@@ -1,5 +1,3 @@
-// schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,35 +10,40 @@ datasource db {
 
 model SensorData {
   id               BigInt     @id @default(autoincrement())
-  temperature      Decimal    @db.Decimal(5, 2) /// Temperature reading from DHT11 sensor in Celsius
-  humidity         Decimal    @db.Decimal(5, 2) /// Humidity reading from DHT11 sensor in percentage
-  soil_moisture    Int        /// Soil moisture reading in percentage (0-100%)
-  soil_temperature Decimal?   @db.Decimal(5, 2) /// Soil temperature reading from DS18B20 sensor in Celsius
-  rain_detected    Boolean    /// Rain detection status from MH-RD sensor
-  water_level      String     /// Water level classification: "Low", "Medium", or "High"
-  created_at       DateTime   @default(now()) @db.Timestamptz(6)
-  
-  // Relation to relay logs
+  /// Temperature reading from DHT11 sensor in Celsius
+  temperature      Decimal    @db.Decimal(5, 2)
+  /// Humidity reading from DHT11 sensor in percentage
+  humidity         Decimal    @db.Decimal(5, 2)
+  /// Soil moisture reading in percentage (0-100%)
+  soil_moisture    Int
+  /// Soil temperature reading from DS18B20 sensor in Celsius
+  soil_temperature Decimal?   @db.Decimal(5, 2)
+  /// Rain detection status from MH-RD sensor
+  rain_detected    Boolean
+  /// Water level classification: "Low", "Medium", or "High"
+  water_level      String
+  created_at       DateTime?  @default(now()) @db.Timestamptz(6)
   relayLogs        RelayLog[]
 
+  @@index([created_at(sort: Desc)], map: "idx_sensor_data_created_at")
+  @@index([soil_moisture], map: "idx_sensor_data_soil_moisture")
+  @@index([soil_temperature], map: "idx_sensor_data_soil_temperature")
   @@map("sensor-data")
-  @@index([created_at(sort: Desc)], name: "idx_sensor_data_created_at")
-  @@index([soil_moisture], name: "idx_sensor_data_soil_moisture")
-  @@index([soil_temperature], name: "idx_sensor_data_soil_temperature")
 }
 
 model RelayLog {
-  id                   BigInt     @id @default(autoincrement())
-  relay_status         Boolean    /// Relay status: true = ON (pump active), false = OFF (pump inactive)
-  trigger_reason       String     /// Reason for relay state change
-  sensor_reading_id    BigInt     /// Foreign key to sensor data reading
-  created_at           DateTime   @default(now()) @db.Timestamptz(6)
-  
-  // Relation to sensor data
-  sensorData           SensorData @relation(fields: [sensor_reading_id], references: [id], onDelete: Cascade)
+  id                BigInt     @id @default(autoincrement())
+  /// Relay status: true = ON (pump active), false = OFF (pump inactive)
+  relay_status      Boolean
+  /// Reason for relay state change
+  trigger_reason    String
+  /// Foreign key to sensor data reading
+  sensor_reading_id BigInt
+  created_at        DateTime?  @default(now()) @db.Timestamptz(6)
+  sensorData        SensorData @relation(fields: [sensor_reading_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sensor_reading")
 
+  @@index([created_at(sort: Desc)], map: "idx_relay_log_created_at")
+  @@index([relay_status], map: "idx_relay_log_status")
+  @@index([sensor_reading_id], map: "idx_relay_log_sensor_reading")
   @@map("relay-log")
-  @@index([created_at(sort: Desc)], name: "idx_relay_log_created_at")
-  @@index([relay_status], name: "idx_relay_log_status")
-  @@index([sensor_reading_id], name: "idx_relay_log_sensor_reading")
 }
