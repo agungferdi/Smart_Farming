@@ -1,6 +1,8 @@
 #include "network/DataUploader.h"
 
-DataUploader::DataUploader(const char* url, const char* key) : supabaseUrl(url), apiKey(key) {
+DataUploader::DataUploader(const char* url, const char* key) 
+    : backendUrl(url), apiKey(key), lastSensorId(0) {
+    Serial.println("DataUploader initialized for Backend API");
 }
 
 bool DataUploader::connectWiFi(const char* ssid, const char* password) {
@@ -18,23 +20,18 @@ bool DataUploader::connectWiFi(const char* ssid, const char* password) {
     return true;
 }
 
-bool DataUploader::sendSensorData(float temp, float humidity, int soilMoisture, 
-                                 bool rain, String waterLevel) {
+long DataUploader::sendSensorData(float temp, float humidity, int soilMoisture, bool rain, String waterLevel) {
     if (!isWiFiConnected()) {
         Serial.println("WiFi not connected");
-        return false;
+        return 0;
     }
 
     HTTPClient http;
-    String url = String(supabaseUrl) + "/rest/v1/sensor-data";
-
+    String url = String(backendUrl) + "/api/sensor-data";
     http.begin(url);
     http.addHeader("Content-Type", "application/json");
-    http.addHeader("apikey", apiKey);
+    http.addHeader("X-ESP32-Device", "true");
     http.addHeader("Authorization", "Bearer " + String(apiKey));
-    http.addHeader("Prefer", "return=minimal");
-
-    // Create JSON payload with sensor data
     JsonDocument doc;
     doc["temperature"] = temp;
     doc["humidity"] = humidity;
@@ -45,7 +42,7 @@ bool DataUploader::sendSensorData(float temp, float humidity, int soilMoisture,
     String jsonString;
     serializeJson(doc, jsonString);
 
-    Serial.print("Sending sensor data: ");
+    Serial.print("Sending sensor data to Backend: ");
     Serial.println(jsonString);
 
     // Send POST request
@@ -57,55 +54,64 @@ bool DataUploader::sendSensorData(float temp, float humidity, int soilMoisture,
         Serial.println(httpResponseCode);
 
         if (httpResponseCode == 201) {
-            Serial.println("Sensor data sent successfully!");
+            Serial.println("✅ Sensor data sent successfully!");
+            
+            JsonDocument responseDoc;
+            deserializeJson(responseDoc, response);
+            
+            if (responseDoc["data"]["id"]) {
+                lastSensorId = responseDoc["data"]["id"].as<long>();
+                Serial.printf("Sensor reading saved with ID: %ld\n", lastSensorId);
+            }
+            
             http.end();
-            return true;
+            return lastSensorId;
         } else {
-            Serial.print("Unexpected response. Response: ");
+            Serial.print("❌ Unexpected response. Response: ");
             Serial.println(response);
         }
     } else {
-        Serial.print("Error sending sensor data. HTTP error: ");
+        Serial.print("❌ Error sending sensor data. HTTP error: ");
         Serial.println(httpResponseCode);
         Serial.print("Error: ");
         Serial.println(http.errorToString(httpResponseCode));
     }
 
     http.end();
-    return false;
+    return 0;
 }
 
-bool DataUploader::sendRelayLog(bool relayStatus, String reason, int soilMoisture, 
-                               float temperature, bool rain) {
+bool DataUploader::sendRelayLog(bool relayStatus, String reason, long sensorReadingId) {
     if (!isWiFiConnected()) {
         Serial.println("WiFi not connected - cannot send relay log");
         return false;
     }
 
+    if (sensorReadingId <= 0) {
+        Serial.println("Invalid sensor reading ID - cannot send relay log");
+        return false;
+    }
+
     HTTPClient http;
-    String url = String(supabaseUrl) + "/rest/v1/relay-log";
+    String url = String(backendUrl) + "/api/relay-log";
 
     http.begin(url);
     http.addHeader("Content-Type", "application/json");
-    http.addHeader("apikey", apiKey);
+    http.addHeader("X-ESP32-Device", "true");
     http.addHeader("Authorization", "Bearer " + String(apiKey));
-    http.addHeader("Prefer", "return=minimal");
 
-    // Create JSON payload with relay log data
     JsonDocument doc;
     doc["relay_status"] = relayStatus;
     doc["trigger_reason"] = reason;
-    doc["soil_moisture"] = soilMoisture;
-    doc["temperature"] = temperature;
-    doc["rain_detected"] = rain;
+    doc["sensor_reading_id"] = sensorReadingId;  
 
     String jsonString;
     serializeJson(doc, jsonString);
 
-    Serial.print("Sending relay log: ");
+    Serial.print("Sending relay log to Backend: ");
     Serial.println(jsonString);
 
-    // Send POST request
+
     int httpResponseCode = http.POST(jsonString);
 
     if (httpResponseCode > 0) {
@@ -114,15 +120,15 @@ bool DataUploader::sendRelayLog(bool relayStatus, String reason, int soilMoistur
         Serial.println(httpResponseCode);
 
         if (httpResponseCode == 201) {
-            Serial.println("Relay log sent successfully!");
+            Serial.println("✅ Relay log sent successfully!");
             http.end();
             return true;
         } else {
-            Serial.print("Unexpected relay log response. Response: ");
+            Serial.print("❌ Unexpected relay log response. Response: ");
             Serial.println(response);
         }
     } else {
-        Serial.print("Error sending relay log. HTTP error: ");
+        Serial.print("❌ Error sending relay log. HTTP error: ");
         Serial.println(httpResponseCode);
         Serial.print("Error: ");
         Serial.println(http.errorToString(httpResponseCode));
@@ -143,4 +149,8 @@ void DataUploader::printConnectionInfo() {
 
 IPAddress DataUploader::getLocalIP() {
     return WiFi.localIP();
+}
+
+long DataUploader::getLastSensorId() const {
+    return lastSensorId;
 }

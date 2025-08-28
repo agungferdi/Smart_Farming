@@ -131,16 +131,19 @@ export class SensorDataService {
             temperature: stats._avg.temperature,
             humidity: stats._avg.humidity,
             soil_moisture: stats._avg.soil_moisture,
+            soil_temperature: stats._avg.soil_temperature,
           },
           minimum: {
             temperature: stats._min.temperature,
             humidity: stats._min.humidity,
             soil_moisture: stats._min.soil_moisture,
+            soil_temperature: stats._min.soil_temperature,
           },
           maximum: {
             temperature: stats._max.temperature,
             humidity: stats._max.humidity,
             soil_moisture: stats._max.soil_moisture,
+            soil_temperature: stats._max.soil_temperature,
           },
           total_readings: stats._count.id,
           rain_detection_count: stats.rain_detection_count,
@@ -178,6 +181,22 @@ export class SensorDataService {
       warnings.push(
         `Soil moisture ${data.soil_moisture}% is outside valid range (0% to 100%)`,
       );
+    }
+
+    // Soil temperature validation (optional field)
+    if (data.soil_temperature !== undefined) {
+      if (data.soil_temperature < -20 || data.soil_temperature > 60) {
+        warnings.push(
+          `Soil temperature ${data.soil_temperature}°C is outside normal range (-20°C to 60°C)`,
+        );
+      }
+      
+      // Soil temperature should generally be cooler than air temperature
+      if (data.soil_temperature > data.temperature + 10) {
+        warnings.push(
+          `Soil temperature (${data.soil_temperature}°C) is unusually higher than air temperature (${data.temperature}°C)`,
+        );
+      }
     }
 
     // Check for potential sensor malfunction (impossible combinations)

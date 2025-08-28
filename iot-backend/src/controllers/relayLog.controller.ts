@@ -126,10 +126,7 @@ export class RelayLogController {
       const {
         relay_status,
         trigger_reason,
-        soil_moisture,
-        temperature,
-        rain_detected,
-        water_level,
+        sensor_reading_id,
       } = body;
 
       if (typeof relay_status !== 'boolean') {
@@ -153,13 +150,18 @@ export class RelayLogController {
         );
       }
 
+      if (!sensor_reading_id) {
+        return sendError(
+          c,
+          new Error('sensor_reading_id is required'),
+          400,
+        );
+      }
+
       const result = await this.relayLogService.logRelayStateChange(
         relay_status,
         trigger_reason,
-        soil_moisture,
-        temperature,
-        rain_detected,
-        water_level,
+        BigInt(sensor_reading_id),
       );
 
       const statusCode = result.success ? 201 : 400;

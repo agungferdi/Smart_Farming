@@ -13,23 +13,17 @@ void RelayController::begin() {
     Serial.printf("Relay controller initialized on GPIO%d\n", pin);
 }
 
-bool RelayController::shouldActivate(int soilMoisture, float temperature) {
-    return (soilMoisture <= SOIL_THRESHOLD && temperature >= TEMP_THRESHOLD);
+bool RelayController::shouldActivate(int soilMoisture) {
+    return (soilMoisture <= SOIL_THRESHOLD);  // Only check soil moisture
 }
 
-void RelayController::control(int soilMoisture, float temperature, String& reason) {
-    bool shouldActivate = this->shouldActivate(soilMoisture, temperature);
+void RelayController::control(int soilMoisture, String& reason) {
+    bool shouldActivate = this->shouldActivate(soilMoisture);
     
     if (shouldActivate) {
-        reason = "Low soil moisture (" + String(soilMoisture) + "%) and high temperature (" + String(temperature) + "°C)";
+        reason = "Low soil moisture detected (" + String(soilMoisture) + "%)";
     } else {
-        if (soilMoisture > SOIL_THRESHOLD) {
-            reason = "Soil moisture sufficient (" + String(soilMoisture) + "%)";
-        } else if (temperature < TEMP_THRESHOLD) {
-            reason = "Temperature too low (" + String(temperature) + "°C)";
-        } else {
-            reason = "Conditions no longer met - Soil: " + String(soilMoisture) + "%, Temp: " + String(temperature) + "°C";
-        }
+        reason = "Soil moisture sufficient (" + String(soilMoisture) + "%)";
     }
     
     // Update relay state - LOW-triggered relay (LOW = ON, HIGH = OFF)

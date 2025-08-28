@@ -3,6 +3,8 @@
 #include "utils/SensorCalibration.h"
 #include "sensors/DHT11Sensor.h"
 #include "sensors/SoilMoistureSensor.h"
+// #include "sensors/SoilTemperatureSensor.h"
+// kljsdkfljweklfrkljwelkkjljskdf
 #include "sensors/RainSensor.h"
 #include "sensors/WaterLevelSensor.h"
 #include "actuators/RelayController.h"
@@ -19,12 +21,13 @@ void testSensors();
 
 // Initialize components using calibration constants
 DHT11Sensor dht11(Pins::DHT11_PIN, DHT11Config::DHT_TYPE);
-SoilMoistureSensor soilSensor(Pins::SOIL_MOISTURE_PIN);
+SoilMoistureSensor soilSensor(Pins::SOIL_MOISTURE_PIN); 
+// SoilTemperatureSensor soilTempSensor(Pins::SOIL_TEMP_PIN);
 RainSensor rainSensor(Pins::RAIN_SENSOR_PIN);
 WaterLevelSensor waterSensor(Pins::WATER_LEVEL_PIN);
 RelayController relay(Pins::RELAY_PIN);
 OLEDDisplay oled(Pins::SDA_PIN, Pins::SCL_PIN);
-DataUploader uploader(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+DataUploader uploader(BACKEND_URL, BACKEND_API_KEY);  // Simplified - backend only
 
 // Timing variables
 unsigned long lastSensorRead = 0;
@@ -39,13 +42,10 @@ void setup() {
     
     Serial.println("=== Smart Irrigation System with Rain Detection ===");
     
-    // Initialize all components
     initializeComponents();
     
-    // Connect to WiFi
     uploader.connectWiFi(WIFI_SSID, WIFI_PASSWORD);
-    
-    // Test all sensors
+
     testSensors();
     
     Serial.println("Smart Irrigation System Ready!");
@@ -54,7 +54,6 @@ void setup() {
 void loop() {
     unsigned long currentTime = millis();
     
-    // Read sensors every 2 seconds
     if (currentTime - lastSensorRead >= Timing::SENSOR_INTERVAL) {
         sensorDataValid = readAllSensors();
         
@@ -66,7 +65,6 @@ void loop() {
         lastSensorRead = currentTime;
     }
     
-    // Send data every 15 seconds
     if (currentTime - lastDataSent >= Timing::SEND_INTERVAL) {
         if (sensorDataValid) {
             sendDataToCloud();
@@ -92,6 +90,7 @@ void initializeComponents() {
     
     // Initialize other components
     dht11.begin();
+    // soilTempSensor.begin();
     rainSensor.begin();
     relay.begin();
     
@@ -104,26 +103,26 @@ void initializeComponents() {
 }
 
 bool readAllSensors() {
-    // Read all sensors
+
     bool dhtOk = dht11.readData();
     bool soilOk = soilSensor.readData();
+    // bool soilTempOk = soilTempSensor.readData();
     bool rainOk = rainSensor.readData();
     bool waterOk = waterSensor.readData();
     
-    // Print debug information
     if (dhtOk) dht11.printDebugInfo();
     if (soilOk) soilSensor.printDebugInfo();
+
     if (rainOk) rainSensor.printDebugInfo();
     if (waterOk) waterSensor.printDebugInfo();
     
-    // Validate all readings
     bool allValid = dhtOk && soilOk && rainOk && waterOk;
     
     if (allValid) {
-        // Print summary
-        Serial.printf("Summary - Temp: %.1f°C, Humid: %.1f%%, Soil: %d%%, Water: %s, Rain: %s\n",
+        Serial.printf("Summary - Air: %.1f°C, Humid: %.1f%%, Soil: %d%%, Water: %s, Rain: %s\n",
                       dht11.getTemperature(), dht11.getHumidity(), 
-                      soilSensor.getPercentage(), waterSensor.getStatus().c_str(),
+                      soilSensor.getPercentage(),
+                      waterSensor.getStatus().c_str(),
                       rainSensor.isRainDetected() ? "true" : "false");
     } else {
         Serial.println("❌ Some sensor readings are invalid!");
@@ -134,15 +133,18 @@ bool readAllSensors() {
 
 void controlPump() {
     String reason;
-    relay.control(soilSensor.getPercentage(), dht11.getTemperature(), reason);
+    
+    relay.control(soilSensor.getPercentage(), reason);
     
     if (relay.hasStateChanged()) {
         relay.printDebugInfo(reason);
         
-        // Send relay log to database
-        uploader.sendRelayLog(relay.isRelayActive(), reason, 
-                             soilSensor.getPercentage(), dht11.getTemperature(), 
-                             rainSensor.isRainDetected());
+        long lastSensorId = uploader.getLastSensorId();
+        if (lastSensorId > 0) {
+            uploader.sendRelayLog(relay.isRelayActive(), reason, lastSensorId);
+        } else {
+            Serial.println("Warning: No sensor ID available for relay log");
+        }
         
         relay.updateLastState();
     }
@@ -156,12 +158,17 @@ void updateDisplay() {
 }
 
 void sendDataToCloud() {
-    bool success = uploader.sendSensorData(dht11.getTemperature(), dht11.getHumidity(),
-                                          soilSensor.getPercentage(), rainSensor.isRainDetected(),
-                                          waterSensor.getStatus());
+    long sensorId = uploader.sendSensorData(
+        dht11.getTemperature(),
+        dht11.getHumidity(),
+        soilSensor.getPercentage(),
+        // soilTempSensor.getTemperature(), // Disabled - sensor not connected
+        rainSensor.isRainDetected(),
+        waterSensor.getStatus()
+    );
     
-    if (success) {
-        Serial.println("✓ Sensor data sent to database");
+    if (sensorId > 0) {
+        Serial.printf("✓ Sensor data sent to database with ID: %ld\n", sensorId);
     } else {
         Serial.println("✗ Failed to send sensor data");
     }
@@ -170,9 +177,9 @@ void sendDataToCloud() {
 void testSensors() {
     Serial.println("Testing sensors...");
     
-    // Test each sensor individually
     dht11.readData();
     soilSensor.readData();
+    // soilTempSensor.readData();
     rainSensor.readData();
     waterSensor.readData();
     

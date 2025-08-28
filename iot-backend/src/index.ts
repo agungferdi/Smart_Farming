@@ -12,9 +12,9 @@ app.use('*', logger());
 app.use(
   '*',
   cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'], // Allow frontend apps, TODO: Update with production URLs
+    origin: ['http://localhost:3000', 'http://localhost:3001', '*'], // need to be change into real url if already acc
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-ESP32-Device'],
   }),
 );
 
