@@ -6,6 +6,11 @@
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000);
 
+// Global variables for remote relay control (declared in main.cpp)
+extern bool remoteRelayCommand;
+extern bool remoteRelayStatus;
+extern String remoteRelayReason;
+
 MQTTClient::MQTTClient(const char* server, int port, const char* user, const char* password, 
                        const char* deviceId, const char* sensorTopic, const char* relayTopic, 
                        const char* statusTopic, const char* relayCommandTopic) 
@@ -99,9 +104,9 @@ bool MQTTClient::connectMQTT() {
         
         // Subscribe to relay command topic
         if (mqttClient.subscribe(relayCommandTopic)) {
-            Serial.printf("Subscribed to relay command topic: %s\n", relayCommandTopic);
+            Serial.printf("✓ Successfully subscribed to relay command topic: %s\n", relayCommandTopic);
         } else {
-            Serial.println("Failed to subscribe to relay command topic");
+            Serial.printf("✗ Failed to subscribe to relay command topic: %s\n", relayCommandTopic);
         }
         
         // Publish online status
@@ -149,7 +154,11 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
         message += (char)payload[i];
     }
     
-    Serial.printf("Received message on topic '%s': %s\n", topic, message.c_str());
+    Serial.println("=== MQTT MESSAGE RECEIVED ===");
+    Serial.printf("Topic: %s\n", topic);
+    Serial.printf("Message: %s\n", message.c_str());
+    Serial.printf("Length: %u\n", length);
+    Serial.println("=============================");
     
     // Check if this is a relay command
     if (String(topic) == String(relayCommandTopic)) {
@@ -163,26 +172,28 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
         }
         
         // Extract command based on the new format: { "state": "on"/"off", "sensorReadingId": "123" }
-        if (doc.containsKey("state")) {
+        if (doc["state"].is<const char*>()) {
             String state = doc["state"];
             bool relayStatus = (state == "on");
             
-            Serial.printf("Relay command received - State: %s\n", state.c_str());
+            Serial.printf("✓ Relay command received - State: %s\n", state.c_str());
             
             // Set global variables for main.cpp to handle
-            extern bool remoteRelayCommand;
-            extern bool remoteRelayStatus;
-            extern String remoteRelayReason;
-            
             remoteRelayCommand = true;
             remoteRelayStatus = relayStatus;
-            remoteRelayReason = "manual-web";
+            remoteRelayReason = "Remote MQTT command: " + state;
+            
+            Serial.printf("✓ Global variables set: remoteRelayCommand=%s, remoteRelayStatus=%s\n", 
+                         remoteRelayCommand ? "true" : "false",
+                         remoteRelayStatus ? "true" : "false");
             
             // If sensorReadingId is provided, we could log it
-            if (doc.containsKey("sensorReadingId")) {
+            if (doc["sensorReadingId"].is<const char*>()) {
                 String sensorReadingId = doc["sensorReadingId"];
                 Serial.printf("Linked to sensor reading ID: %s\n", sensorReadingId.c_str());
             }
+        } else {
+            Serial.println("✗ No 'state' field found in relay command");
         }
     }
 }
