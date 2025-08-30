@@ -123,45 +123,41 @@ export class RelayLogController {
     try {
       const body = await c.req.json();
 
-      const {
-        relay_status,
-        trigger_reason,
-        sensor_reading_id,
-      } = body;
+      const { relayStatus, triggerReason, sensorReadingId } = body;
 
-      if (typeof relay_status !== 'boolean') {
+      if (typeof relayStatus !== 'boolean') {
         return sendError(
           c,
-          new Error('relay_status must be a boolean'),
+          new Error('relayStatus must be a boolean'),
           400,
         );
       }
 
       if (
-        typeof trigger_reason !== 'string' ||
-        trigger_reason.trim() === ''
+        typeof triggerReason !== 'string' ||
+        triggerReason.trim() === ''
       ) {
         return sendError(
           c,
           new Error(
-            'trigger_reason is required and must be a non-empty string',
+            'triggerReason is required and must be a non-empty string',
           ),
           400,
         );
       }
 
-      if (!sensor_reading_id) {
+      if (!sensorReadingId) {
         return sendError(
           c,
-          new Error('sensor_reading_id is required'),
+          new Error('sensorReadingId is required'),
           400,
         );
       }
 
       const result = await this.relayLogService.logRelayStateChange(
-        relay_status,
-        trigger_reason,
-        BigInt(sensor_reading_id),
+        relayStatus,
+        triggerReason,
+        BigInt(sensorReadingId),
       );
 
       const statusCode = result.success ? 201 : 400;
@@ -229,20 +225,18 @@ export class RelayLogController {
 
       const hasRecentData =
         latestResult.success && latestResult.data !== null;
-      const lastLogAge = latestResult.data?.created_at
-        ? Date.now() -
-          new Date(latestResult.data.created_at).getTime()
+      const lastLogAge = latestResult.data?.createdAt
+        ? Date.now() - new Date(latestResult.data.createdAt).getTime()
         : null;
 
       return sendResponse(c, {
         status: hasRecentData ? 'healthy' : 'warning',
-        has_data: hasRecentData,
-        last_log_age_minutes: lastLogAge
+        hasData: hasRecentData,
+        lastLogAgeMinutes: lastLogAge
           ? Math.floor(lastLogAge / (1000 * 60))
           : null,
-        current_relay_status:
-          latestResult.data?.relay_status ?? false,
-        recent_operations: statsResult.data?.total_operations ?? 0,
+        currentRelayStatus: latestResult.data?.relayStatus ?? false,
+        recentOperations: statsResult.data?.totalOperations ?? 0,
         message: hasRecentData
           ? 'Relay log service is operational'
           : 'No recent relay logs found',

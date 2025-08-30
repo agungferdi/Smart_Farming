@@ -126,27 +126,27 @@ export class SensorDataService {
         success: true,
         message: 'Sensor data statistics retrieved successfully',
         data: {
-          period_hours: hours,
+          periodHours: hours,
           average: {
             temperature: stats._avg.temperature,
             humidity: stats._avg.humidity,
-            soil_moisture: stats._avg.soil_moisture,
-            soil_temperature: stats._avg.soil_temperature,
+            soilMoisture: stats._avg.soilMoisture,
+            soilTemperature: stats._avg.soilTemperature,
           },
           minimum: {
             temperature: stats._min.temperature,
             humidity: stats._min.humidity,
-            soil_moisture: stats._min.soil_moisture,
-            soil_temperature: stats._min.soil_temperature,
+            soilMoisture: stats._min.soilMoisture,
+            soilTemperature: stats._min.soilTemperature,
           },
           maximum: {
             temperature: stats._max.temperature,
             humidity: stats._max.humidity,
-            soil_moisture: stats._max.soil_moisture,
-            soil_temperature: stats._max.soil_temperature,
+            soilMoisture: stats._max.soilMoisture,
+            soilTemperature: stats._max.soilTemperature,
           },
-          total_readings: stats._count.id,
-          rain_detection_count: stats.rain_detection_count,
+          totalReadings: stats._count.id,
+          rainDetectionCount: stats.rainDetectionCount,
         },
       };
     } catch (error) {
@@ -177,30 +177,30 @@ export class SensorDataService {
     }
 
     // Soil moisture validation
-    if (data.soil_moisture < 0 || data.soil_moisture > 100) {
+    if (data.soilMoisture < 0 || data.soilMoisture > 100) {
       warnings.push(
-        `Soil moisture ${data.soil_moisture}% is outside valid range (0% to 100%)`,
+        `Soil moisture ${data.soilMoisture}% is outside valid range (0% to 100%)`,
       );
     }
 
     // Soil temperature validation (optional field)
-    if (data.soil_temperature !== undefined) {
-      if (data.soil_temperature < -20 || data.soil_temperature > 60) {
+    if (data.soilTemperature !== undefined) {
+      if (data.soilTemperature < -20 || data.soilTemperature > 60) {
         warnings.push(
-          `Soil temperature ${data.soil_temperature}°C is outside normal range (-20°C to 60°C)`,
+          `Soil temperature ${data.soilTemperature}°C is outside normal range (-20°C to 60°C)`,
         );
       }
-      
+
       // Soil temperature should generally be cooler than air temperature
-      if (data.soil_temperature > data.temperature + 10) {
+      if (data.soilTemperature > data.temperature + 10) {
         warnings.push(
-          `Soil temperature (${data.soil_temperature}°C) is unusually higher than air temperature (${data.temperature}°C)`,
+          `Soil temperature (${data.soilTemperature}°C) is unusually higher than air temperature (${data.temperature}°C)`,
         );
       }
     }
 
     // Check for potential sensor malfunction (impossible combinations)
-    if (data.rain_detected && data.soil_moisture < 30) {
+    if (data.rainDetected && data.soilMoisture < 30) {
       warnings.push(
         'Rain detected but soil moisture is low - possible sensor malfunction',
       );
@@ -223,8 +223,8 @@ export class SensorDataService {
         success: true,
         message: `Cleanup completed: ${result.count} old records deleted`,
         data: {
-          deleted_count: result.count,
-          days_kept: daysToKeep,
+          deletedCount: result.count,
+          daysKept: daysToKeep,
         },
       };
     } catch (error) {

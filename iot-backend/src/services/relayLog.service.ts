@@ -126,18 +126,18 @@ export class RelayLogService {
         success: true,
         message: 'Relay statistics retrieved successfully',
         data: {
-          period_hours: hours,
-          total_operations: stats.total_operations,
-          on_count: stats.on_count,
-          off_count: stats.off_count,
-          on_percentage:
-            stats.total_operations > 0
-              ? (stats.on_count / stats.total_operations) * 100
+          periodHours: hours,
+          totalOperations: stats.totalOperations,
+          onCount: stats.onCount,
+          offCount: stats.offCount,
+          onPercentage:
+            stats.totalOperations > 0
+              ? (stats.onCount / stats.totalOperations) * 100
               : 0,
-          avg_soil_moisture_when_on: stats.avg_soil_moisture_when_on,
-          avg_temperature_when_on: stats.avg_temperature_when_on,
-          avg_soil_temperature_when_on: stats.avg_soil_temperature_when_on,
-          rain_detection_count: stats.rain_detection_count,
+          avgSoilMoistureWhenOn: stats.avgSoilMoistureWhenOn,
+          avgTemperatureWhenOn: stats.avgTemperatureWhenOn,
+          avgSoilTemperatureWhenOn: stats.avgSoilTemperatureWhenOn,
+          rainDetectionCount: stats.rainDetectionCount,
         },
       };
     } catch (error) {
@@ -158,7 +158,7 @@ export class RelayLogService {
         success: true,
         message: 'Current relay status retrieved successfully',
         data: {
-          relay_status: status,
+          relayStatus: status,
           timestamp: new Date().toISOString(),
         },
       };
@@ -191,9 +191,9 @@ export class RelayLogService {
       }
 
       const logData: CreateRelayLogInput = {
-        relay_status: relayStatus,
-        trigger_reason: triggerReason,
-        sensor_reading_id: sensorReadingId,
+        relayStatus,
+        triggerReason,
+        sensorReadingId,
       };
 
       const result = await this.createRelayLog(logData);
@@ -230,9 +230,9 @@ export class RelayLogService {
           message:
             'No relay operations found in the specified period',
           data: {
-            total_on_duration_minutes: 0,
-            average_on_duration_minutes: 0,
-            operation_count: 0,
+            totalOnDurationMinutes: 0,
+            averageOnDurationMinutes: 0,
+            operationCount: 0,
           },
         };
       }
@@ -244,19 +244,18 @@ export class RelayLogService {
       // Process logs in chronological order (oldest first)
       const sortedLogs = logs.data.sort(
         (a, b) =>
-          new Date(a.created_at!).getTime() -
-          new Date(b.created_at!).getTime(),
+          new Date(a.createdAt!).getTime() -
+          new Date(b.createdAt!).getTime(),
       );
 
       for (const log of sortedLogs) {
-        if (log.relay_status && !lastOnTime) {
+        if (log.relayStatus && !lastOnTime) {
           // Relay turned ON
-          lastOnTime = log.created_at!;
-        } else if (!log.relay_status && lastOnTime) {
+          lastOnTime = log.createdAt!;
+        } else if (!log.relayStatus && lastOnTime) {
           // Relay turned OFF
           const duration =
-            new Date(log.created_at!).getTime() -
-            lastOnTime.getTime();
+            new Date(log.createdAt!).getTime() - lastOnTime.getTime();
           totalOnDuration += duration;
           operationCount++;
           lastOnTime = null;
@@ -271,10 +270,10 @@ export class RelayLogService {
         success: true,
         message: 'Relay operation duration analysis completed',
         data: {
-          period_hours: hours,
-          total_on_duration_minutes: Math.round(totalMinutes),
-          average_on_duration_minutes: Math.round(averageMinutes),
-          operation_count: operationCount,
+          periodHours: hours,
+          totalOnDurationMinutes: Math.round(totalMinutes),
+          averageOnDurationMinutes: Math.round(averageMinutes),
+          operationCount,
         },
       };
     } catch (error) {
@@ -297,8 +296,8 @@ export class RelayLogService {
         success: true,
         message: `Cleanup completed: ${result.count} old relay logs deleted`,
         data: {
-          deleted_count: result.count,
-          days_kept: daysToKeep,
+          deletedCount: result.count,
+          daysKept: daysToKeep,
         },
       };
     } catch (error) {

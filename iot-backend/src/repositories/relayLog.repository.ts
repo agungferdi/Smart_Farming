@@ -1,17 +1,17 @@
-import { prisma } from "../database/connection.js";
+import { prisma } from '../database/connection.js';
 import type {
   CreateRelayLogInput,
   RelayLogQuery,
-} from "../schemas/relayLog.schema.js";
+} from '../schemas/relayLog.schema.js';
 
 export class RelayLogRepository {
   // Create new relay log record
   async create(data: CreateRelayLogInput) {
     return await prisma.relayLog.create({
       data: {
-        relay_status: data.relay_status,
-        trigger_reason: data.trigger_reason,
-        sensor_reading_id: data.sensor_reading_id,
+        relayStatus: data.relayStatus,
+        triggerReason: data.triggerReason,
+        sensorReadingId: data.sensorReadingId,
       },
       include: {
         sensorData: true,
@@ -23,7 +23,7 @@ export class RelayLogRepository {
   async getLatest() {
     return await prisma.relayLog.findFirst({
       orderBy: {
-        created_at: "desc",
+        createdAt: 'desc',
       },
       include: {
         sensorData: true,
@@ -37,17 +37,17 @@ export class RelayLogRepository {
 
     // Add status filter if provided
     if (query.status !== undefined) {
-      where.relay_status = query.status;
+      where.relayStatus = query.status;
     }
 
     // Add date range filters if provided
     if (query.from || query.to) {
-      where.created_at = {};
+      where.createdAt = {};
       if (query.from) {
-        where.created_at.gte = new Date(query.from);
+        where.createdAt.gte = new Date(query.from);
       }
       if (query.to) {
-        where.created_at.lte = new Date(query.to);
+        where.createdAt.lte = new Date(query.to);
       }
     }
 
@@ -55,7 +55,7 @@ export class RelayLogRepository {
       prisma.relayLog.findMany({
         where,
         orderBy: {
-          created_at: "desc",
+          createdAt: 'desc',
         },
         take: query.limit,
         skip: query.offset,
@@ -86,25 +86,25 @@ export class RelayLogRepository {
     const [totalCount, onCount, offCount] = await Promise.all([
       prisma.relayLog.count({
         where: {
-          created_at: {
+          createdAt: {
             gte: since,
           },
         },
       }),
       prisma.relayLog.count({
         where: {
-          created_at: {
+          createdAt: {
             gte: since,
           },
-          relay_status: true,
+          relayStatus: true,
         },
       }),
       prisma.relayLog.count({
         where: {
-          created_at: {
+          createdAt: {
             gte: since,
           },
-          relay_status: false,
+          relayStatus: false,
         },
       }),
     ]);
@@ -112,10 +112,10 @@ export class RelayLogRepository {
     // Get average sensor values when relay was activated (from related sensor data)
     const relayLogsWithSensorData = await prisma.relayLog.findMany({
       where: {
-        created_at: {
+        createdAt: {
           gte: since,
         },
-        relay_status: true,
+        relayStatus: true,
       },
       include: {
         sensorData: true,
@@ -125,62 +125,69 @@ export class RelayLogRepository {
     const avgWhenOn =
       relayLogsWithSensorData.length > 0
         ? {
-            soil_moisture:
+            soilMoisture:
               relayLogsWithSensorData.reduce(
                 (totalMoisture, log) =>
-                  totalMoisture + log.sensorData.soil_moisture,
-                0
+                  totalMoisture + log.sensorData.soilMoisture,
+                0,
               ) / relayLogsWithSensorData.length,
             temperature:
               relayLogsWithSensorData.reduce(
                 (totalTemp, log) =>
                   totalTemp + Number(log.sensorData.temperature),
-                0
+                0,
               ) / relayLogsWithSensorData.length,
-            soil_temperature: (() => {
+            soilTemperature: (() => {
               const logsWithSoilTemp = relayLogsWithSensorData.filter(
-                (log) => log.sensorData.soil_temperature !== null
+                (log) => log.sensorData.soilTemperature !== null,
               );
               if (logsWithSoilTemp.length === 0) return null;
               return (
                 logsWithSoilTemp.reduce(
                   (totalSoilTemp, log) =>
-                    totalSoilTemp + Number(log.sensorData.soil_temperature!),
-                  0
+                    totalSoilTemp +
+                    Number(log.sensorData.soilTemperature!),
+                  0,
                 ) / logsWithSoilTemp.length
               );
             })(),
           }
-        : { soil_moisture: null, temperature: null, soil_temperature: null };
+        : {
+            soilMoisture: null,
+            temperature: null,
+            soilTemperature: null,
+          };
 
     const rainCount = relayLogsWithSensorData.filter(
-      (log) => log.sensorData.rain_detected
+      (log) => log.sensorData.rainDetected,
     ).length;
 
     return {
-      total_operations: totalCount,
-      on_count: onCount,
-      off_count: offCount,
-      rain_detection_count: rainCount,
-      avg_soil_moisture_when_on: avgWhenOn.soil_moisture,
-      avg_temperature_when_on: avgWhenOn.temperature,
-      avg_soil_temperature_when_on: avgWhenOn.soil_temperature,
+      totalOperations: totalCount,
+      onCount: onCount,
+      offCount: offCount,
+      rainDetectionCount: rainCount,
+      avgSoilMoistureWhenOn: avgWhenOn.soilMoisture,
+      avgTemperatureWhenOn: avgWhenOn.temperature,
+      avgSoilTemperatureWhenOn: avgWhenOn.soilTemperature,
     };
   }
 
   // Get current relay status (latest entry)
   async getCurrentStatus() {
     const latest = await this.getLatest();
-    return latest?.relay_status ?? false;
+    return latest?.relayStatus ?? false;
   }
 
   // Delete old records (cleanup)
   async deleteOldRecords(daysToKeep: number = 30) {
-    const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000);
+    const cutoffDate = new Date(
+      Date.now() - daysToKeep * 24 * 60 * 60 * 1000,
+    );
 
     return await prisma.relayLog.deleteMany({
       where: {
-        created_at: {
+        createdAt: {
           lt: cutoffDate,
         },
       },

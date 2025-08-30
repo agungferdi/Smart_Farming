@@ -156,14 +156,14 @@ export class SensorDataController {
         await this.sensorDataService.getLatestSensorData();
 
       const isHealthy = result.success && result.data !== null;
-      const lastDataAge = result.data?.created_at
-        ? Date.now() - new Date(result.data.created_at).getTime()
+      const lastDataAge = result.data?.createdAt
+        ? Date.now() - new Date(result.data.createdAt).getTime()
         : null;
 
       return sendResponse(c, {
         status: isHealthy ? 'healthy' : 'warning',
-        has_data: result.success && result.data !== null,
-        last_data_age_minutes: lastDataAge
+        hasData: result.success && result.data !== null,
+        lastDataAgeMinutes: lastDataAge
           ? Math.floor(lastDataAge / (1000 * 60))
           : null,
         message: isHealthy
