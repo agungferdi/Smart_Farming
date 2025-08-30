@@ -15,35 +15,36 @@ model SensorData {
   /// Humidity reading from DHT11 sensor in percentage
   humidity         Decimal    @db.Decimal(5, 2)
   /// Soil moisture reading in percentage (0-100%)
-  soil_moisture    Int
+  soilMoisture     Int        @map("soil_moisture")
   /// Soil temperature reading from DS18B20 sensor in Celsius
-  soil_temperature Decimal?   @db.Decimal(5, 2)
+  soilTemperature  Decimal?   @db.Decimal(5, 2) @map("soil_temperature")
   /// Rain detection status from MH-RD sensor
-  rain_detected    Boolean
+  rainDetected     Boolean    @map("rain_detected")
   /// Water level classification: "Low", "Medium", or "High"
-  water_level      String
-  created_at       DateTime?  @default(now()) @db.Timestamptz(6)
+  waterLevel       String     @map("water_level")
+  createdAt        DateTime?  @default(now()) @db.Timestamptz(6) @map("created_at")
   relayLogs        RelayLog[]
 
-  @@index([created_at(sort: Desc)], map: "idx_sensor_data_created_at")
-  @@index([soil_moisture], map: "idx_sensor_data_soil_moisture")
-  @@index([soil_temperature], map: "idx_sensor_data_soil_temperature")
+  @@index([createdAt(sort: Desc)], map: "idx_sensor_data_created_at")
+  @@index([soilMoisture], map: "idx_sensor_data_soil_moisture")
+  @@index([soilTemperature], map: "idx_sensor_data_soil_temperature")
   @@map("sensor-data")
 }
 
 model RelayLog {
-  id                BigInt     @id @default(autoincrement())
+  id               BigInt     @id @default(autoincrement())
   /// Relay status: true = ON (pump active), false = OFF (pump inactive)
-  relay_status      Boolean
+  relayStatus      Boolean    @map("relay_status")
   /// Reason for relay state change
-  trigger_reason    String
+  triggerReason    String     @map("trigger_reason")
   /// Foreign key to sensor data reading
-  sensor_reading_id BigInt
-  created_at        DateTime?  @default(now()) @db.Timestamptz(6)
-  sensorData        SensorData @relation(fields: [sensor_reading_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sensor_reading")
+  sensorReadingId  BigInt     @map("sensor_reading_id")
+  createdAt        DateTime?  @default(now()) @db.Timestamptz(6) @map("created_at")
+  sensorData       SensorData @relation(fields: [sensorReadingId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sensor_reading")
 
-  @@index([created_at(sort: Desc)], map: "idx_relay_log_created_at")
-  @@index([relay_status], map: "idx_relay_log_status")
-  @@index([sensor_reading_id], map: "idx_relay_log_sensor_reading")
+  @@index([createdAt(sort: Desc)], map: "idx_relay_log_created_at")
+  @@index([relayStatus], map: "idx_relay_log_status")
+  @@index([sensorReadingId], map: "idx_relay_log_sensor_reading")
   @@map("relay-log")
 }
+

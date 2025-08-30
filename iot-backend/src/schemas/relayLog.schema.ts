@@ -1,21 +1,21 @@
-import { z } from "zod";
-import { sensorDataResponseSchema } from "./sensorData.schema.js";
+import { z } from 'zod';
+import { sensorDataResponseSchema } from './sensorData.schema.js';
 
 export const createRelayLogSchema = z.object({
-  relay_status: z.boolean().describe("Whether relay is on or off"),
-  trigger_reason: z.string().describe("Reason for relay state change"),
-  sensor_reading_id: z
+  relayStatus: z.boolean().describe('Whether relay is on or off'),
+  triggerReason: z.string().describe('Reason for relay state change'),
+  sensorReadingId: z
     .union([z.number(), z.bigint(), z.string()])
     .transform((val) => BigInt(val))
-    .describe("Reference to sensor data reading ID"),
+    .describe('Reference to sensor data reading ID'),
 });
 
 export const relayLogResponseSchema = z.object({
   id: z.bigint(),
-  relay_status: z.boolean(),
-  trigger_reason: z.string(),
-  sensor_reading_id: z.bigint(),
-  created_at: z.date().nullable(),
+  relayStatus: z.boolean(),
+  triggerReason: z.string(),
+  sensorReadingId: z.bigint(),
+  createdAt: z.date().nullable(),
   sensorData: sensorDataResponseSchema.optional(),
 });
 
@@ -33,13 +33,15 @@ export const relayLogQuerySchema = z.object({
     .optional()
     .default(0),
   status: z
-    .enum(["true", "false"])
-    .transform((val) => val === "true")
+    .enum(['true', 'false'])
+    .transform((val) => val === 'true')
     .optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
 });
 
-export type CreateRelayLogInput = z.infer<typeof createRelayLogSchema>;
+export type CreateRelayLogInput = z.infer<
+  typeof createRelayLogSchema
+>;
 export type RelayLogResponse = z.infer<typeof relayLogResponseSchema>;
 export type RelayLogQuery = z.infer<typeof relayLogQuerySchema>;

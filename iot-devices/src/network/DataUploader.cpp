@@ -35,9 +35,9 @@ long DataUploader::sendSensorData(float temp, float humidity, int soilMoisture, 
     JsonDocument doc;
     doc["temperature"] = temp;
     doc["humidity"] = humidity;
-    doc["soil_moisture"] = soilMoisture;
-    doc["rain_detected"] = rain;
-    doc["water_level"] = waterLevel;
+    doc["soilMoisture"] = soilMoisture;
+    doc["rainDetected"] = rain;
+    doc["waterLevel"] = waterLevel;
 
     String jsonString;
     serializeJson(doc, jsonString);
@@ -101,9 +101,9 @@ bool DataUploader::sendRelayLog(bool relayStatus, String reason, long sensorRead
     http.addHeader("Authorization", "Bearer " + String(apiKey));
 
     JsonDocument doc;
-    doc["relay_status"] = relayStatus;
-    doc["trigger_reason"] = reason;
-    doc["sensor_reading_id"] = sensorReadingId;  
+    doc["relayStatus"] = relayStatus;
+    doc["triggerReason"] = reason;
+    doc["sensorReadingId"] = sensorReadingId;
 
     String jsonString;
     serializeJson(doc, jsonString);

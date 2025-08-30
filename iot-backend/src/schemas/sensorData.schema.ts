@@ -11,31 +11,31 @@ export const createSensorDataSchema = z.object({
     .min(0)
     .max(100)
     .describe('Humidity percentage'),
-  soil_moisture: z
+  soilMoisture: z
     .number()
     .int()
     .min(0)
     .max(100)
     .describe('Soil moisture percentage'),
-  soil_temperature: z
+  soilTemperature: z
     .number()
     .min(-50)
     .max(100)
     .optional()
     .describe('Soil temperature in Celsius (optional)'),
-  rain_detected: z.boolean().describe('Whether rain is detected'),
-  water_level: z.string().describe('Water level status'),
+  rainDetected: z.boolean().describe('Whether rain is detected'),
+  waterLevel: z.string().describe('Water level status'),
 });
 
 export const sensorDataResponseSchema = z.object({
   id: z.bigint(),
   temperature: z.number(),
   humidity: z.number(),
-  soil_moisture: z.number(),
-  soil_temperature: z.number().nullable(),
-  rain_detected: z.boolean(),
-  water_level: z.string(),
-  created_at: z.date().nullable(),
+  soilMoisture: z.number(),
+  soilTemperature: z.number().nullable(),
+  rainDetected: z.boolean(),
+  waterLevel: z.string(),
+  createdAt: z.date().nullable(),
 });
 
 export const sensorDataQuerySchema = z.object({

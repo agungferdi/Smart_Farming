@@ -11,10 +11,10 @@ export class SensorDataRepository {
       data: {
         temperature: data.temperature,
         humidity: data.humidity,
-        soil_moisture: data.soil_moisture,
-        soil_temperature: data.soil_temperature,
-        rain_detected: data.rain_detected,
-        water_level: data.water_level,
+        soilMoisture: data.soilMoisture,
+        soilTemperature: data.soilTemperature,
+        rainDetected: data.rainDetected,
+        waterLevel: data.waterLevel,
       },
     });
   }
@@ -23,7 +23,7 @@ export class SensorDataRepository {
   async getLatest() {
     return await prisma.sensorData.findFirst({
       orderBy: {
-        created_at: 'desc',
+        createdAt: 'desc',
       },
     });
   }
@@ -34,12 +34,12 @@ export class SensorDataRepository {
 
     // Add date range filters if provided
     if (query.from || query.to) {
-      where.created_at = {};
+      where.createdAt = {};
       if (query.from) {
-        where.created_at.gte = new Date(query.from);
+        where.createdAt.gte = new Date(query.from);
       }
       if (query.to) {
-        where.created_at.lte = new Date(query.to);
+        where.createdAt.lte = new Date(query.to);
       }
     }
 
@@ -47,7 +47,7 @@ export class SensorDataRepository {
       prisma.sensorData.findMany({
         where,
         orderBy: {
-          created_at: 'desc',
+          createdAt: 'desc',
         },
         take: query.limit,
         skip: query.offset,
@@ -71,27 +71,27 @@ export class SensorDataRepository {
 
     const stats = await prisma.sensorData.aggregate({
       where: {
-        created_at: {
+        createdAt: {
           gte: since,
         },
       },
       _avg: {
         temperature: true,
         humidity: true,
-        soil_moisture: true,
-        soil_temperature: true,
+        soilMoisture: true,
+        soilTemperature: true,
       },
       _min: {
         temperature: true,
         humidity: true,
-        soil_moisture: true,
-        soil_temperature: true,
+        soilMoisture: true,
+        soilTemperature: true,
       },
       _max: {
         temperature: true,
         humidity: true,
-        soil_moisture: true,
-        soil_temperature: true,
+        soilMoisture: true,
+        soilTemperature: true,
       },
       _count: {
         id: true,
@@ -100,16 +100,16 @@ export class SensorDataRepository {
 
     const rainCount = await prisma.sensorData.count({
       where: {
-        created_at: {
+        createdAt: {
           gte: since,
         },
-        rain_detected: true,
+        rainDetected: true,
       },
     });
 
     return {
       ...stats,
-      rain_detection_count: rainCount,
+      rainDetectionCount: rainCount,
     };
   }
 
@@ -121,7 +121,7 @@ export class SensorDataRepository {
 
     return await prisma.sensorData.deleteMany({
       where: {
-        created_at: {
+        createdAt: {
           lt: cutoffDate,
         },
       },
