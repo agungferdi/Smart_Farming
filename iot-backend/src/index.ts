@@ -4,6 +4,8 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { apiRouter } from './routes/index.js';
 import { disconnectDatabase } from './database/connection.js';
+import { disconnectMqtt } from './services/mqtt.service.js';
+import { startMqttListeners } from './services/mqtt.listener.js';
 
 const app = new Hono();
 
@@ -32,6 +34,7 @@ app.get('/', (c) => {
       'GET /api/db-test': 'Database test',
       '/api/sensor-data/*': 'Sensor data endpoints',
       '/api/relay-log/*': 'Relay log endpoints',
+      '/api/mqtt/*': 'MQTT endpoints',
     },
   });
 });
@@ -86,6 +89,10 @@ serve(
     console.log(
       `🔍 Health check at http://localhost:${info.port}/api/health`,
     );
+    // Start MQTT subscriptions (non-blocking)
+    startMqttListeners().catch((e) =>
+      console.error('Failed to start MQTT listeners:', e),
+    );
   },
 );
 
@@ -98,6 +105,13 @@ const gracefulShutdown = async (signal: string) => {
     console.log('✅ Database disconnected successfully');
   } catch (error) {
     console.error('❌ Error disconnecting database:', error);
+  }
+
+  try {
+    await disconnectMqtt();
+    console.log('✅ MQTT disconnected successfully');
+  } catch (error) {
+    console.error('❌ Error disconnecting MQTT:', error);
   }
 
   console.log('👋 Goodbye!');
