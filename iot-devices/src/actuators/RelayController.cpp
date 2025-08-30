@@ -31,6 +31,11 @@ void RelayController::control(int soilMoisture, String& reason) {
     digitalWrite(pin, isActive ? LOW : HIGH);  // LOW = ON, HIGH = OFF for low-triggered relay
 }
 
+void RelayController::setRelayState(bool state) {
+    isActive = state;
+    digitalWrite(pin, isActive ? LOW : HIGH);  // LOW = ON, HIGH = OFF for low-triggered relay
+}
+
 bool RelayController::isRelayActive() const {
     return isActive;
 }

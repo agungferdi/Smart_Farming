@@ -16,6 +16,7 @@ public:
     void begin();
     bool shouldActivate(int soilMoisture);  // Only soil moisture parameter now
     void control(int soilMoisture, String& reason);  // Simplified parameters
+    void setRelayState(bool state);  // Manual relay control
     bool isRelayActive() const;
     bool hasStateChanged();
     void updateLastState();
