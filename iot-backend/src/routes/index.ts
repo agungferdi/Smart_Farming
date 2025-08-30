@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { sensorDataRouter } from './sensorData.routes.js';
 import { relayLogRouter } from './relayLog.routes.js';
 import { prisma } from '../database/connection.js';
+import { mqttRouter } from './mqtt.routes.js';
 
 const apiRouter = new Hono();
 
@@ -92,6 +93,10 @@ apiRouter.get('/info', (c) => {
       'POST /api/relay-log/state-change': 'Log relay state change',
       'GET /api/relay-log/:id': 'Get relay log by ID',
       'DELETE /api/relay-log/cleanup': 'Cleanup old relay logs',
+
+      // MQTT endpoints
+      'GET /api/mqtt/health': 'MQTT connection status',
+      'POST /api/mqtt/publish': 'Publish a message to a topic',
     },
     timestamp: new Date().toISOString(),
   });
@@ -100,5 +105,6 @@ apiRouter.get('/info', (c) => {
 // Mount sub-routers
 apiRouter.route('/sensor-data', sensorDataRouter);
 apiRouter.route('/relay-log', relayLogRouter);
+apiRouter.route('/mqtt', mqttRouter);
 
 export { apiRouter };
