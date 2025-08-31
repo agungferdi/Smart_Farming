@@ -20,7 +20,7 @@ private:
     const char* sensorDataTopic;
     const char* relayLogTopic;
     const char* statusTopic;
-    const char* relayCommandTopic; // New topic for relay commands
+    const char* relayCommandTopic; 
     
     unsigned long lastReconnectAttempt;
     const unsigned long RECONNECT_INTERVAL = 5000;

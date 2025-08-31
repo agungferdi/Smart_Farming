@@ -57,7 +57,7 @@ namespace RelayThresholds {
 // Timing Configuration
 namespace Timing {
     const unsigned long SENSOR_INTERVAL = 2000;  // Read sensor every 2 seconds
-    const unsigned long SEND_INTERVAL = 120000;  // Send data every 2 minutes (120 seconds)
+    const unsigned long SEND_INTERVAL = 4000;  // Send data every 4 seconds
 }
 
 // Utility functions for validation and debugging
