@@ -1,31 +1,45 @@
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
-// Helper function to convert BigInt to string for JSON serialization
-const serializeBigInt = (obj: any): any => {
-  if (obj === null || obj === undefined) {
-    return obj;
+// Helper function to safely serialize values for JSON
+// - BigInt -> string
+// - Date -> ISO string
+// - Objects with toJSON (e.g., Prisma Decimal) -> use toJSON result
+// - Arrays and plain objects -> recursively serialize
+const serializeBigInt = (value: any): any => {
+  if (value === null || value === undefined) return value;
+
+  const t = typeof value;
+  if (t === 'bigint') return value.toString();
+  if (t === 'number' || t === 'string' || t === 'boolean')
+    return value;
+
+  if (value instanceof Date) return value.toISOString();
+
+  if (Array.isArray(value)) {
+    return value.map(serializeBigInt);
   }
 
-  if (typeof obj === 'bigint') {
-    return obj.toString();
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map(serializeBigInt);
-  }
-
-  if (typeof obj === 'object') {
-    const serialized: any = {};
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        serialized[key] = serializeBigInt(obj[key]);
+  if (t === 'object') {
+    // Respect native toJSON of Date/Prisma Decimal/etc.
+    if (typeof (value as any).toJSON === 'function') {
+      try {
+        const jsonVal = (value as any).toJSON();
+        // Recursively ensure nested BigInt inside toJSON outputs are handled
+        return serializeBigInt(jsonVal);
+      } catch {
+        // fall through to manual recursion if toJSON fails
       }
     }
-    return serialized;
+
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) {
+      out[k] = serializeBigInt(v);
+    }
+    return out;
   }
 
-  return obj;
+  return value;
 };
 
 export const sendResponse = (

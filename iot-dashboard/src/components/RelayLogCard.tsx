@@ -1,60 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { supabase, RelayLog } from '@/lib/supabase';
+import React from 'react';
 import { Zap, Power, Activity, Clock } from 'lucide-react';
 import { format } from 'date-fns';
+import { useRelayLogs } from '@/hooks/useRelayLogs';
 
 export function RelayLogCard() {
-  const [relayLogs, setRelayLogs] = useState<RelayLog[]>([]);
-  console.log({ relayLogs });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchRelayLogs();
-
-    // Set up real-time subscription for relay logs
-    const channel = supabase
-      .channel('relay-log-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'relay-log',
-        },
-        (payload) => {
-          setRelayLogs((prev) => [
-            payload.new as RelayLog,
-            ...prev.slice(0, 9),
-          ]);
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const fetchRelayLogs = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('relay-log')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-
-      setRelayLogs(data || []);
-    } catch (err) {
-      console.error('Error fetching relay logs:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { relayLogs, loading } = useRelayLogs(10);
 
   if (loading) {
     return (
@@ -72,7 +24,7 @@ export function RelayLogCard() {
   }
 
   const latestStatus =
-    relayLogs.length > 0 ? relayLogs[0].relay_status : false;
+    relayLogs.length > 0 ? relayLogs[0].relayStatus : false;
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 border">
@@ -99,11 +51,11 @@ export function RelayLogCard() {
         </div>
       ) : (
         <div className="space-y-3 max-h-80 overflow-y-auto">
-          {relayLogs.map((log, index) => (
+          {relayLogs.map((log) => (
             <div
               key={log.id}
               className={`p-4 rounded-lg border-l-4 ${
-                log.relay_status
+                log.relayStatus
                   ? 'bg-green-50 border-green-400'
                   : 'bg-red-50 border-red-400'
               }`}
@@ -113,37 +65,43 @@ export function RelayLogCard() {
                   <div className="flex items-center mb-1">
                     <Zap
                       className={`h-4 w-4 mr-2 ${
-                        log.relay_status
+                        log.relayStatus
                           ? 'text-green-600'
                           : 'text-red-600'
                       }`}
                     />
                     <span
                       className={`font-medium text-sm ${
-                        log.relay_status
+                        log.relayStatus
                           ? 'text-green-800'
                           : 'text-red-800'
                       }`}
                     >
-                      {log.relay_status
+                      {log.relayStatus
                         ? 'PUMP STARTED'
                         : 'PUMP STOPPED'}
                     </span>
                   </div>
                   <p className="text-xs text-gray-600 mb-2">
-                    {log.trigger_reason}
+                    {log.triggerReason}
                   </p>
                   <div className="flex items-center space-x-4 text-xs text-gray-500">
-                    <span>🌡️ {log.temperature}°C</span>
-                    <span>💧 {log.soil_moisture}%</span>
-                    <span>
-                      {log.rain_detected ? '🌧️ Rain' : '☀️ Dry'}
-                    </span>
+                    {log.temperature !== null && (
+                      <span>🌡️ {log.temperature}°C</span>
+                    )}
+                    {log.soilMoisture !== null && (
+                      <span>💧 {log.soilMoisture}%</span>
+                    )}
+                    {log.rainDetected !== null && (
+                      <span>
+                        {log.rainDetected ? '🌧️ Rain' : '☀️ Dry'}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center text-xs text-gray-400">
                   <Clock className="h-3 w-3 mr-1" />
-                  {format(new Date(log.created_at), 'HH:mm:ss')}
+                  {format(new Date(log.createdAt), 'HH:mm:ss')}
                 </div>
               </div>
             </div>
