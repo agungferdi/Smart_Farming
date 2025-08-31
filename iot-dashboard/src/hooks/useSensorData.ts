@@ -1,55 +1,50 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { supabase, SensorData } from '@/lib/supabase'
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchSensorDataPage, SensorDataBE } from '@/lib/api';
 
-export function useSensorData(limit: number = 100) {
-  const [data, setData] = useState<SensorData[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+export type SensorData = {
+  id: number;
+  temperature: number;
+  humidity: number;
+  soilMoisture: number;
+  rainDetected: boolean;
+  waterLevel: string;
+  createdAt: string;
+};
 
-  useEffect(() => {
-    fetchSensorData()
-    
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('sensor-data-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'sensor-data'
-        },
-        (payload) => {
-          setData(prev => [payload.new as SensorData, ...prev.slice(0, limit - 1)])
-        }
-      )
-      .subscribe()
+const toNum = (v: number | string): number =>
+  typeof v === 'string' ? Number(v) : v;
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [limit])
+function mapSensor(be: SensorDataBE): SensorData {
+  return {
+    id: Number(be.id),
+    temperature: toNum(be.temperature),
+    humidity: toNum(be.humidity),
+    soilMoisture: toNum(be.soilMoisture),
+    rainDetected: Boolean(be.rainDetected),
+    waterLevel: be.waterLevel,
+    createdAt: be.createdAt,
+  };
+}
 
-  const fetchSensorData = async () => {
-    try {
-      setLoading(true)
-      const { data: sensorData, error } = await supabase
-        .from('sensor-data')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(limit)
+export function useSensorData(limit: number = 10) {
+  const query = useQuery({
+    queryKey: ['sensor-data', { limit }],
+    queryFn: () => fetchSensorDataPage(limit, 0),
+  });
 
-      if (error) throw error
+  const mapped = useMemo(() => {
+    if (!query.data) return [] as SensorData[];
+    // API returns meta+data sorted desc already
+    return query.data.data.map(mapSensor);
+  }, [query.data]);
 
-      setData(sensorData || [])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return { data, loading, error, refetch: fetchSensorData }
+  return {
+    data: mapped,
+    loading: query.isLoading,
+    error: query.error ? (query.error as Error).message : null,
+    refetch: query.refetch,
+  };
 }

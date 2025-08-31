@@ -1,157 +1,121 @@
-'use client'
+'use client';
 
-import React from 'react'
+import React from 'react';
+import { format } from 'date-fns';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  TimeScale,
-} from 'chart.js'
-import { Line } from 'react-chartjs-2'
-import { SensorData } from '@/lib/supabase'
-import { format } from 'date-fns'
-import 'chartjs-adapter-date-fns'
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  TimeScale
-)
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  // Tooltip and Legend handled via Chart components
+} from 'recharts';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from '@/components/ui/chart';
+import type { SensorData } from '@/hooks/useSensorData';
 
 interface TimeSeriesChartProps {
-  data: SensorData[]
-  title: string
+  data: SensorData[];
 }
 
-export function TimeSeriesChart({ data, title }: TimeSeriesChartProps) {
-  const reversedData = [...data].reverse() // Show oldest to newest
+export function TimeSeriesChart({ data }: TimeSeriesChartProps) {
+  const reversedData = [...data].reverse();
 
-  const chartData = {
-    labels: reversedData.map(item => new Date(item.created_at)),
-    datasets: [
-      {
-        label: 'Temperature (°C)',
-        data: reversedData.map(item => item.temperature),
-        borderColor: 'rgb(239, 68, 68)',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        yAxisID: 'y',
-        tension: 0.1,
-      },
-      {
-        label: 'Humidity (%)',
-        data: reversedData.map(item => item.humidity),
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        yAxisID: 'y',
-        tension: 0.1,
-      },
-      {
-        label: 'Soil Moisture (%)',
-        data: reversedData.map(item => item.soil_moisture),
-        borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-        yAxisID: 'y1',
-        tension: 0.1,
-      },
-    ],
-  }
+  const oldest = reversedData[0]?.createdAt
+    ? new Date(reversedData[0].createdAt).getTime()
+    : undefined;
+  const newest = reversedData[reversedData.length - 1]?.createdAt
+    ? new Date(
+        reversedData[reversedData.length - 1].createdAt,
+      ).getTime()
+    : undefined;
+  const spanMs =
+    oldest !== undefined && newest !== undefined
+      ? Math.max(0, newest - oldest)
+      : 0;
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      mode: 'index' as const,
-      intersect: false,
+  const tickFmt = (v: string) => {
+    const d = new Date(v);
+    // If span > ~36h show date, else show time
+    return spanMs > 36 * 60 * 60 * 1000
+      ? format(d, 'MMM d')
+      : format(d, 'HH:mm');
+  };
+
+  const chartConfig = {
+    temperature: {
+      label: 'Temperature (°C)',
+      color: 'rgb(239, 68, 68)',
     },
-    plugins: {
-      title: {
-        display: true,
-        text: title,
-        font: {
-          size: 16,
-          weight: 'bold' as const,
-        },
-      },
-      tooltip: {
-        callbacks: {
-          title: function(context: any) {
-            try {
-              const date = new Date(context[0].label)
-              if (isNaN(date.getTime())) {
-                return 'Invalid date'
-              }
-              return format(date, 'MMM dd, yyyy HH:mm:ss')
-            } catch (error) {
-              return 'Invalid date'
-            }
-          }
-        }
-      }
+    humidity: { label: 'Humidity (%)', color: 'rgb(59, 130, 246)' },
+    soilMoisture: {
+      label: 'Soil Moisture (%)',
+      color: 'rgb(34, 197, 94)',
     },
-    scales: {
-      x: {
-        type: 'time' as const,
-        time: {
-          displayFormats: {
-            minute: 'HH:mm',
-            hour: 'HH:mm',
-            day: 'MMM dd',
-          },
-        },
-        title: {
-          display: true,
-          text: 'Time',
-          font: {
-            weight: 'bold' as const,
-          },
-        },
-      },
-      y: {
-        type: 'linear' as const,
-        display: true,
-        position: 'left' as const,
-        title: {
-          display: true,
-          text: 'Temperature (°C) / Humidity (%)',
-          font: {
-            weight: 'bold' as const,
-          },
-        },
-        grid: {
-          color: 'rgba(0, 0, 0, 0.1)',
-        },
-      },
-      y1: {
-        type: 'linear' as const,
-        display: true,
-        position: 'right' as const,
-        title: {
-          display: true,
-          text: 'Soil Moisture (%)',
-          font: {
-            weight: 'bold' as const,
-          },
-        },
-        grid: {
-          drawOnChartArea: false,
-        },
-      },
-    },
-  }
+  };
 
   return (
-    <div className="h-80 w-full">
-      <Line data={chartData} options={options} />
-    </div>
-  )
+    <ChartContainer config={chartConfig} className="h-80 w-full">
+      <LineChart data={reversedData} margin={{ left: 12, right: 12 }}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis
+          dataKey="createdAt"
+          tickFormatter={tickFmt}
+          minTickGap={24}
+        />
+        <YAxis yAxisId="left" />
+        <YAxis yAxisId="right" orientation="right" />
+        <ChartTooltip
+          content={
+            <ChartTooltipContent
+              labelFormatter={(value) =>
+                typeof value === 'string'
+                  ? format(new Date(value), 'MMM d, HH:mm:ss')
+                  : String(value)
+              }
+              formatter={(val, name) => {
+                if (name === 'temperature')
+                  return [`${val} °C`, 'Temperature'];
+                if (name === 'humidity')
+                  return [`${val} %`, 'Humidity'];
+                if (name === 'soilMoisture')
+                  return [`${val} %`, 'Soil Moisture'];
+                return [String(val), String(name)];
+              }}
+            />
+          }
+        />
+        <ChartLegend content={<ChartLegendContent />} />
+        <Line
+          type="monotone"
+          yAxisId="left"
+          dataKey="temperature"
+          stroke="var(--color-temperature)"
+          dot={false}
+          strokeWidth={2}
+        />
+        <Line
+          type="monotone"
+          yAxisId="left"
+          dataKey="humidity"
+          stroke="var(--color-humidity)"
+          dot={false}
+          strokeWidth={2}
+        />
+        <Line
+          type="monotone"
+          yAxisId="right"
+          dataKey="soilMoisture"
+          stroke="var(--color-soilMoisture)"
+          dot={false}
+          strokeWidth={2}
+        />
+      </LineChart>
+    </ChartContainer>
+  );
 }

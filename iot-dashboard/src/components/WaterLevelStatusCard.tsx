@@ -1,6 +1,6 @@
 'use client';
 
-import { SensorData } from '@/lib/supabase';
+import type { SensorData } from '@/hooks/useSensorData';
 import { Waves, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface WaterLevelStatusCardProps {
@@ -22,7 +22,7 @@ export function WaterLevelStatusCard({
 
   const latest = data[0];
   const waterLevelCounts = data.reduce((acc, item) => {
-    acc[item.water_level] = (acc[item.water_level] || 0) + 1;
+    acc[item.waterLevel] = (acc[item.waterLevel] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
@@ -63,7 +63,7 @@ export function WaterLevelStatusCard({
     }
   };
 
-  const config = getWaterLevelConfig(latest.water_level);
+  const config = getWaterLevelConfig(latest.waterLevel);
   const Icon = config.icon;
 
   return (
@@ -78,7 +78,7 @@ export function WaterLevelStatusCard({
               Water Level
             </h3>
             <div className={`text-xl font-bold ${config.textColor}`}>
-              {latest.water_level}
+              {latest.waterLevel}
             </div>
             <div className="text-xs text-gray-500">
               {config.description}
