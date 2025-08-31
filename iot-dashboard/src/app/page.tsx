@@ -2,16 +2,36 @@
 
 import { useSensorData } from '@/hooks/useSensorData';
 import { TimeSeriesChart } from '@/components/TimeSeriesChart';
-import { IndividualTimeSeriesChart } from '@/components/IndividualTimeSeriesChart';
 import { StatsCard } from '@/components/StatsCard';
 import { RelayLogCard } from '@/components/RelayLogCard';
 import { RainStatusCard } from '@/components/RainStatusCard';
 import { WaterLevelStatusCard } from '@/components/WaterLevelStatusCard';
 import { RefreshCw, Database, Droplets } from 'lucide-react';
 import { format } from 'date-fns';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { HealthStrip } from '@/components/HealthStrip';
+import { RelayControl } from '@/components/RelayControl';
+import { Badge } from '@/components/ui/badge';
+import {
+  Thermometer,
+  Droplets as DropletsIcon,
+  Sprout,
+} from 'lucide-react';
 
 export default function Dashboard() {
-  const { data, loading, error, refetch } = useSensorData(10);
+  const PAGE_SIZE = 100;
+  const { data, loading, error, refetch } = useSensorData(PAGE_SIZE);
+  const isStale =
+    data.length > 0 &&
+    Date.now() - new Date(data[0].createdAt).getTime() >
+      10 * 60 * 1000;
 
   if (loading) {
     return (
@@ -75,13 +95,10 @@ export default function Dashboard() {
                     : format(new Date(), 'MMM dd, HH:mm:ss')}
                 </div>
               </div>
-              <button
-                onClick={() => refetch()}
-                className="flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-              >
-                <RefreshCw className="h-4 w-4 mr-2 text-white" />
-                <span className="text-white">Refresh</span>
-              </button>
+              <Button onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
             </div>
           </div>
         </div>
@@ -89,6 +106,10 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Health strip */}
+        <div className="mb-6">
+          <HealthStrip />
+        </div>
         {/* Stats Cards */}
         <StatsCard data={data} />
 
@@ -96,148 +117,148 @@ export default function Dashboard() {
           <div className="space-y-6">
             <RainStatusCard data={data} />
             <WaterLevelStatusCard data={data} />
+            <RelayControl />
           </div>
           <div className="lg:col-span-2">
             <RelayLogCard />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 border h-96 mb-8">
-          <TimeSeriesChart data={data} />
-        </div>
-        {/* Individual Sensor Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Temperature Over Time */}
-          <div className="bg-white rounded-lg shadow-md p-6 border">
-            <IndividualTimeSeriesChart
-              data={data}
-              dataKey="temperature"
-              color="rgb(239, 68, 68)"
-            />
-          </div>
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Trends (Last 24h)</CardTitle>
+            <CardDescription>
+              Temperature, Humidity, and Soil Moisture
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-96">
+            <TimeSeriesChart data={data} />
+          </CardContent>
+        </Card>
 
-          {/* Humidity Over Time */}
-          <div className="bg-white rounded-lg shadow-md p-6 border">
-            <IndividualTimeSeriesChart
-              data={data}
-              dataKey="humidity"
-              color="rgb(59, 130, 246)"
-            />
-          </div>
-
-          {/* Soil Moisture Over Time */}
-          <div className="bg-white rounded-lg shadow-md p-6 border">
-            <IndividualTimeSeriesChart
-              data={data}
-              dataKey="soilMoisture"
-              color="rgb(34, 197, 94)"
-            />
-          </div>
-        </div>
         {/* Data Summary */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8 border">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900">
-            Data Summary
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            <div className="text-center">
-              <span className="block text-gray-700 text-sm font-medium">
-                Total Records
-              </span>
-              <span className="block font-bold text-lg text-gray-900">
-                {data.length}
-              </span>
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Data Summary</CardTitle>
+              {isStale && (
+                <Badge variant="destructive">
+                  Stale data (&gt;10m)
+                </Badge>
+              )}
             </div>
-            <div className="text-center">
-              <span className="block text-gray-700 text-sm font-medium">
-                Date Range
-              </span>
-              <span className="block font-semibold text-sm text-gray-900">
-                {data.length > 0
-                  ? `${format(
-                      new Date(data[data.length - 1].createdAt),
-                      'MMM dd',
-                    )} - ${format(
-                      new Date(data[0].createdAt),
-                      'MMM dd',
-                    )}`
-                  : 'No data'}
-              </span>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+              <div className="text-center">
+                <span className="block text-gray-700 text-sm font-medium">
+                  Total Records
+                </span>
+                <span className="block font-bold text-lg text-gray-900">
+                  {data.length}
+                </span>
+              </div>
+              <div className="text-center">
+                <span className="block text-gray-700 text-sm font-medium">
+                  Date Range
+                </span>
+                <span className="block font-semibold text-sm text-gray-900">
+                  {data.length > 0
+                    ? `${format(
+                        new Date(data[data.length - 1].createdAt),
+                        'MMM dd',
+                      )} - ${format(
+                        new Date(data[0].createdAt),
+                        'MMM dd',
+                      )}`
+                    : 'No data'}
+                </span>
+              </div>
+              {data.length > 0 && (
+                <>
+                  {/* Temperature */}
+                  <div className="text-center">
+                    <span className="text-gray-700 text-sm font-medium flex items-center justify-center gap-1">
+                      <Thermometer className="h-4 w-4 text-red-500" />{' '}
+                      Temperature
+                    </span>
+                    <span className="block font-semibold text-sm text-gray-900">
+                      Min{' '}
+                      {Math.min(
+                        ...data.map((d) => d.temperature),
+                      ).toFixed(1)}
+                      °C · Max{' '}
+                      {Math.max(
+                        ...data.map((d) => d.temperature),
+                      ).toFixed(1)}
+                      °C
+                    </span>
+                  </div>
+                  {/* Humidity */}
+                  <div className="text-center">
+                    <span className="text-gray-700 text-sm font-medium flex items-center justify-center gap-1">
+                      <DropletsIcon className="h-4 w-4 text-blue-500" />{' '}
+                      Humidity
+                    </span>
+                    <span className="block font-semibold text-sm text-gray-900">
+                      Min{' '}
+                      {Math.min(
+                        ...data.map((d) => d.humidity),
+                      ).toFixed(1)}
+                      % · Max{' '}
+                      {Math.max(
+                        ...data.map((d) => d.humidity),
+                      ).toFixed(1)}
+                      %
+                    </span>
+                  </div>
+                  {/* Soil Moisture */}
+                  <div className="text-center">
+                    <span className="text-gray-700 text-sm font-medium flex items-center justify-center gap-1">
+                      <Sprout className="h-4 w-4 text-green-600" />{' '}
+                      Soil Moisture
+                    </span>
+                    <span className="block font-semibold text-sm text-gray-900">
+                      Min{' '}
+                      {Math.min(...data.map((d) => d.soilMoisture))}%
+                      · Max{' '}
+                      {Math.max(...data.map((d) => d.soilMoisture))}%
+                    </span>
+                  </div>
+                  <div className="text-center">
+                    <span className="block text-gray-700 text-sm font-medium">
+                      Water Level Status
+                    </span>
+                    <span className="block font-semibold text-sm text-gray-900">
+                      {(() => {
+                        const waterLevelCounts = data.reduce(
+                          (acc, item) => {
+                            acc[item.waterLevel] =
+                              (acc[item.waterLevel] || 0) + 1;
+                            return acc;
+                          },
+                          {} as Record<string, number>,
+                        );
+                        const mostCommon = Object.entries(
+                          waterLevelCounts,
+                        ).reduce((a, b) =>
+                          waterLevelCounts[a[0]] >
+                          waterLevelCounts[b[0]]
+                            ? a
+                            : b,
+                        );
+                        const percentage = Math.round(
+                          (mostCommon[1] / data.length) * 100,
+                        );
+                        return `${mostCommon[0]} (${percentage}%)`;
+                      })()}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
-            {data.length > 0 && (
-              <>
-                <div className="text-center">
-                  <span className="block text-gray-700 text-sm font-medium">
-                    Temperature Range
-                  </span>
-                  <span className="block font-semibold text-sm text-gray-900">
-                    {Math.min(
-                      ...data.map((d) => d.temperature),
-                    ).toFixed(1)}
-                    °C -{' '}
-                    {Math.max(
-                      ...data.map((d) => d.temperature),
-                    ).toFixed(1)}
-                    °C
-                  </span>
-                </div>
-                <div className="text-center">
-                  <span className="block text-gray-700 text-sm font-medium">
-                    Humidity Range
-                  </span>
-                  <span className="block font-semibold text-sm text-gray-900">
-                    {Math.min(...data.map((d) => d.humidity)).toFixed(
-                      1,
-                    )}
-                    % -{' '}
-                    {Math.max(...data.map((d) => d.humidity)).toFixed(
-                      1,
-                    )}
-                    %
-                  </span>
-                </div>
-                <div className="text-center">
-                  <span className="block text-gray-700 text-sm font-medium">
-                    Soil Moisture Range
-                  </span>
-                  <span className="block font-semibold text-sm text-gray-900">
-                    {Math.min(...data.map((d) => d.soilMoisture))}% -{' '}
-                    {Math.max(...data.map((d) => d.soilMoisture))}%
-                  </span>
-                </div>
-                <div className="text-center">
-                  <span className="block text-gray-700 text-sm font-medium">
-                    Water Level Status
-                  </span>
-                  <span className="block font-semibold text-sm text-gray-900">
-                    {(() => {
-                      const waterLevelCounts = data.reduce(
-                        (acc, item) => {
-                          acc[item.waterLevel] =
-                            (acc[item.waterLevel] || 0) + 1;
-                          return acc;
-                        },
-                        {} as Record<string, number>,
-                      );
-                      const mostCommon = Object.entries(
-                        waterLevelCounts,
-                      ).reduce((a, b) =>
-                        waterLevelCounts[a[0]] >
-                        waterLevelCounts[b[0]]
-                          ? a
-                          : b,
-                      );
-                      const percentage = Math.round(
-                        (mostCommon[1] / data.length) * 100,
-                      );
-                      return `${mostCommon[0]} (${percentage}%)`;
-                    })()}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

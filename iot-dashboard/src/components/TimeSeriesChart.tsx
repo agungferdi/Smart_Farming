@@ -26,6 +26,27 @@ interface TimeSeriesChartProps {
 export function TimeSeriesChart({ data }: TimeSeriesChartProps) {
   const reversedData = [...data].reverse();
 
+  const oldest = reversedData[0]?.createdAt
+    ? new Date(reversedData[0].createdAt).getTime()
+    : undefined;
+  const newest = reversedData[reversedData.length - 1]?.createdAt
+    ? new Date(
+        reversedData[reversedData.length - 1].createdAt,
+      ).getTime()
+    : undefined;
+  const spanMs =
+    oldest !== undefined && newest !== undefined
+      ? Math.max(0, newest - oldest)
+      : 0;
+
+  const tickFmt = (v: string) => {
+    const d = new Date(v);
+    // If span > ~36h show date, else show time
+    return spanMs > 36 * 60 * 60 * 1000
+      ? format(d, 'MMM d')
+      : format(d, 'HH:mm');
+  };
+
   const chartConfig = {
     temperature: {
       label: 'Temperature (°C)',
@@ -44,12 +65,31 @@ export function TimeSeriesChart({ data }: TimeSeriesChartProps) {
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis
           dataKey="createdAt"
-          tickFormatter={(v: string) => format(new Date(v), 'HH:mm')}
+          tickFormatter={tickFmt}
           minTickGap={24}
         />
         <YAxis yAxisId="left" />
         <YAxis yAxisId="right" orientation="right" />
-        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartTooltip
+          content={
+            <ChartTooltipContent
+              labelFormatter={(value) =>
+                typeof value === 'string'
+                  ? format(new Date(value), 'MMM d, HH:mm:ss')
+                  : String(value)
+              }
+              formatter={(val, name) => {
+                if (name === 'temperature')
+                  return [`${val} °C`, 'Temperature'];
+                if (name === 'humidity')
+                  return [`${val} %`, 'Humidity'];
+                if (name === 'soilMoisture')
+                  return [`${val} %`, 'Soil Moisture'];
+                return [String(val), String(name)];
+              }}
+            />
+          }
+        />
         <ChartLegend content={<ChartLegendContent />} />
         <Line
           type="monotone"

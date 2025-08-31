@@ -1,16 +1,47 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Zap, Power, Activity, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { useRelayLogs } from '@/hooks/useRelayLogs';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardAction,
+} from '@/components/ui/card';
 
 export function RelayLogCard() {
-  const { relayLogs, loading } = useRelayLogs(10);
+  const PAGE_SIZE = 10;
+  const { relayLogs, loading } = useRelayLogs(PAGE_SIZE);
+  const todayOnMs = useMemo(() => {
+    // naive client calculation: sum durations between ON followed by OFF
+    let total = 0;
+    const logs = [...relayLogs].filter(Boolean);
+    for (let i = 0; i < logs.length - 1; i++) {
+      const a = logs[i];
+      const b = logs[i + 1];
+      if (a.relayStatus && !b.relayStatus) {
+        const start = new Date(a.createdAt).getTime();
+        const end = new Date(b.createdAt).getTime();
+        if (end > start) total += end - start;
+      }
+    }
+    return total;
+  }, [relayLogs]);
+
+  const durationText = useMemo(() => {
+    const mins = Math.floor(todayOnMs / 60000);
+    const hrs = Math.floor(mins / 60);
+    const rem = mins % 60;
+    if (hrs > 0) return `${hrs}h ${rem}m today`;
+    return `${mins}m today`;
+  }, [todayOnMs]);
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6 border">
+      <Card>
         <div className="animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
           <div className="space-y-3">
@@ -19,7 +50,7 @@ export function RelayLogCard() {
             ))}
           </div>
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -27,22 +58,24 @@ export function RelayLogCard() {
     relayLogs.length > 0 ? relayLogs[0].relayStatus : false;
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-          <Power className="h-5 w-5 mr-2 text-blue-500" />
-          Water Pump Status
-        </h3>
-        <div
-          className={`px-3 py-1 rounded-full text-xs font-medium ${
-            latestStatus
-              ? 'bg-green-100 text-green-800'
-              : 'bg-gray-100 text-gray-800'
-          }`}
-        >
-          {latestStatus ? 'ACTIVE' : 'INACTIVE'}
-        </div>
-      </div>
+    <Card>
+      <CardHeader className="flex items-center justify-between">
+        <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <Power className="h-5 w-5 text-blue-500" /> Water Pump
+          Status
+        </CardTitle>
+        <CardAction>
+          <div
+            className={`px-3 py-1 rounded-full text-xs font-medium ${
+              latestStatus
+                ? 'bg-green-100 text-green-800'
+                : 'bg-gray-100 text-gray-800'
+            }`}
+          >
+            {latestStatus ? 'ACTIVE' : 'INACTIVE'}
+          </div>
+        </CardAction>
+      </CardHeader>
 
       {relayLogs.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
@@ -50,7 +83,11 @@ export function RelayLogCard() {
           <p>No pump activity recorded yet</p>
         </div>
       ) : (
-        <div className="space-y-3 max-h-80 overflow-y-auto">
+        <CardContent className="space-y-3 max-h-80 overflow-y-auto">
+          <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
+            <Clock className="h-3 w-3" /> Total ON duration:{' '}
+            {durationText}
+          </div>
           {relayLogs.map((log) => (
             <div
               key={log.id}
@@ -106,8 +143,8 @@ export function RelayLogCard() {
               </div>
             </div>
           ))}
-        </div>
+        </CardContent>
       )}
-    </div>
+    </Card>
   );
 }
