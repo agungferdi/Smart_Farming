@@ -10,6 +10,7 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000);
 extern bool remoteRelayCommand;
 extern bool remoteRelayStatus;
 extern String remoteRelayReason;
+extern bool manualOverrideMode;
 
 MQTTClient::MQTTClient(const char* server, int port, const char* user, const char* password, 
                        const char* deviceId, const char* sensorTopic, const char* relayTopic, 
@@ -183,9 +184,15 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
             remoteRelayStatus = relayStatus;
             remoteRelayReason = "Remote MQTT command: " + state;
             
-            Serial.printf("✓ Global variables set: remoteRelayCommand=%s, remoteRelayStatus=%s\n", 
+            Serial.printf("✓ Global variables set: command=%s, status=%s\n", 
                          remoteRelayCommand ? "true" : "false",
                          remoteRelayStatus ? "true" : "false");
+            
+            if (relayStatus) {
+                Serial.println("Will activate Manual Override Mode (ignore soil moisture)");
+            } else {
+                Serial.println("Will deactivate Manual Override Mode (return to automatic control)");
+            }
             
             // If sensorReadingId is provided, we could log it
             if (doc["sensorReadingId"].is<const char*>()) {

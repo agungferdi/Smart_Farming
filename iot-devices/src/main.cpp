@@ -4,7 +4,6 @@
 #include "sensors/DHT11Sensor.h"
 #include "sensors/SoilMoistureSensor.h"
 // #include "sensors/SoilTemperatureSensor.h"
-// kljsdkfljweklfrkljwelkkjljskdf
 #include "sensors/RainSensor.h"
 #include "sensors/WaterLevelSensor.h"
 #include "actuators/RelayController.h"
@@ -36,7 +35,7 @@ MQTTClient mqttClient(MQTT_SERVER, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD,
 bool remoteRelayCommand = false;
 bool remoteRelayStatus = false;
 String remoteRelayReason = "";
-
+bool manualOverrideMode = false; 
 // Timing variables
 unsigned long lastSensorRead = 0;
 unsigned long lastDataSent = 0;
@@ -128,7 +127,6 @@ bool readAllSensors() {
 
     bool dhtOk = dht11.readData();
     bool soilOk = soilSensor.readData();
-    // bool soilTempOk = soilTempSensor.readData();
     bool rainOk = rainSensor.readData();
     bool waterOk = waterSensor.readData();
     
@@ -141,13 +139,15 @@ bool readAllSensors() {
     bool allValid = dhtOk && soilOk && rainOk && waterOk;
     
     if (allValid) {
-        Serial.printf("Summary - Air: %.1f°C, Humid: %.1f%%, Soil: %d%%, Water: %s, Rain: %s\n",
+        String modeStatus = manualOverrideMode ? " [MANUAL OVERRIDE]" : " [AUTO MODE]";
+        Serial.printf("Summary - Air: %.1f°C, Humid: %.1f%%, Soil: %d%%, Water: %s, Rain: %s%s\n",
                       dht11.getTemperature(), dht11.getHumidity(), 
                       soilSensor.getPercentage(),
                       waterSensor.getStatus().c_str(),
-                      rainSensor.isRainDetected() ? "true" : "false");
+                      rainSensor.isRainDetected() ? "true" : "false",
+                      modeStatus.c_str());
     } else {
-        Serial.println("❌ Some sensor readings are invalid!");
+        Serial.println("Some sensor readings are invalid!");
     }
     
     return allValid;
@@ -161,15 +161,28 @@ void controlPump() {
     if (remoteRelayCommand) {
         Serial.printf("Processing remote relay command: %s\n", remoteRelayStatus ? "ON" : "OFF");
         
-        // Manually set relay state
-        relay.setRelayState(remoteRelayStatus);
-        reason = remoteRelayReason;
+        if (remoteRelayStatus) {
+            manualOverrideMode = true;
+            relay.setRelayState(true);
+            reason = remoteRelayReason + " (Manual Override Mode)";
+            Serial.println("🔒 Manual Override Mode ACTIVATED - Relay will stay ON until manual OFF command");
+        } else {
+            manualOverrideMode = false;
+            relay.setRelayState(false);
+            reason = remoteRelayReason + " (Returning to Automatic Mode)";
+            Serial.println("Manual Override Mode DEACTIVATED - Returning to automatic soil moisture control");
+        }
+        
         relayTriggered = true;
         
         // Reset the command flag
         remoteRelayCommand = false;
+    } else if (manualOverrideMode) {
+        Serial.printf("Manual Override Mode: Relay stays ON (Soil: %d%%, but ignoring automatic control)\n", 
+                     soilSensor.getPercentage());
+        return; 
     } else {
-        // Normal automatic control based on soil moisture
+        // Normal automatic control based on soil moisture (only when NOT in manual override)
         relay.control(soilSensor.getPercentage(), reason);
         relayTriggered = relay.hasStateChanged();
     }
@@ -191,10 +204,10 @@ void updateDisplay() {
     oled.updateSensorData(dht11.getTemperature(), dht11.getHumidity(),
                          soilSensor.getPercentage(), waterSensor.getStatus(),
                          rainSensor.isRainDetected(), relay.isRelayActive(),
-                         mqttClient.isConnected());  // Changed from uploader.isWiFiConnected()
+                         mqttClient.isConnected()); 
 }
 
-void sendDataToMQTT() {  // Changed from sendDataToCloud
+void sendDataToMQTT() {  
     bool success = mqttClient.publishSensorData(
         dht11.getTemperature(),
         dht11.getHumidity(),
