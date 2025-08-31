@@ -8,14 +8,14 @@
 #include "sensors/WaterLevelSensor.h"
 #include "actuators/RelayController.h"
 #include "display/OLEDDisplay.h"
-#include "network/MQTTClient.h"  // Changed from DataUploader to MQTTClient
+#include "network/MQTTClient.h"
 
 // Function declarations
 void initializeComponents();
 bool readAllSensors();
 void controlPump();
 void updateDisplay();
-void sendDataToMQTT();  // Changed from sendDataToCloud
+void sendDataToMQTT();
 void testSensors();
 
 // Initialize components using calibration constants
@@ -88,7 +88,7 @@ void loop() {
     
     if (currentTime - lastDataSent >= Timing::SEND_INTERVAL) {
         if (sensorDataValid) {
-            sendDataToMQTT();  // Changed from sendDataToCloud
+            sendDataToMQTT();
         }
         lastDataSent = currentTime;
     }
@@ -165,7 +165,7 @@ void controlPump() {
             manualOverrideMode = true;
             relay.setRelayState(true);
             reason = remoteRelayReason + " (Manual Override Mode)";
-            Serial.println("🔒 Manual Override Mode ACTIVATED - Relay will stay ON until manual OFF command");
+            Serial.println("Manual Override Mode ACTIVATED - Relay will stay ON until manual OFF command");
         } else {
             manualOverrideMode = false;
             relay.setRelayState(false);
