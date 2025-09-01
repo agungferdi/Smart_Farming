@@ -39,12 +39,10 @@ export function RelayControl() {
   const latestRelayQ = useQuery({
     queryKey: ['relay-latest'],
     queryFn: fetchLatestRelayLog,
-    refetchInterval: 15_000,
   });
   const latestSensorQ = useQuery({
     queryKey: ['sensor-latest'],
     queryFn: fetchLatestSensorData,
-    refetchInterval: 30_000,
   });
 
   const isActive = latestRelayQ.data?.relayStatus ?? false;
