@@ -2,6 +2,11 @@
 
 A comprehensive smart irrigation system using ESP32 with environmental sensors, automated water pump control, rain detection, and real-time web dashboard.
 
+## Live Deployments
+
+- **Frontend Dashboard**: [https://smart-farming-dashboard-eosin.vercel.app/](https://smart-farming-dashboard-eosin.vercel.app/)
+- **Backend API**: [https://smart-farming-ashy-omega.vercel.app/](https://smart-farming-ashy-omega.vercel.app/)
+
 ## Hardware Components
 
 - **ESP32 DevKit**: Main microcontroller
