@@ -42,7 +42,6 @@ const handleSensorMessage = async (
   topic: string,
   payload: Buffer,
 ) => {
-  console.log('payload:', payload);
   const json = tryParseJSON(payload);
   if (!json || typeof json !== 'object') {
     console.warn(
@@ -191,7 +190,6 @@ export const startMqttListeners = async () => {
 
   // Attach message handler once
   const onMessage = async (topic: string, payload: Buffer) => {
-    console.log({ topic, payload });
     try {
       if (isSensorTopic(topic)) {
         await handleSensorMessage(topic, payload);
