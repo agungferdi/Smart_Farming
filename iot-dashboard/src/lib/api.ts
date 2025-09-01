@@ -1,6 +1,8 @@
 // Centralized API client and shared types for the dashboard
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || '';
+export const MQTT_SERVICE_BASE_URL =
+  process.env.NEXT_PUBLIC_MQTT_SERVICE_BASE_URL || '';
 export const MQTT_COMMAND_TOPIC =
   process.env.NEXT_PUBLIC_MQTT_COMMAND_TOPIC || 'farm/relay/command';
 
@@ -57,10 +59,13 @@ export type MqttHealthResponse = {
   timestamp: string;
 };
 
-async function http<T>(path: string, init?: RequestInit): Promise<T> {
-  const url = path.startsWith('http')
-    ? path
-    : `${API_BASE_URL}${path}`;
+async function http<T>(
+  path: string,
+  init?: RequestInit,
+  isMqtt: boolean = false,
+): Promise<T> {
+  const BASE_URL = isMqtt ? MQTT_SERVICE_BASE_URL : API_BASE_URL;
+  const url = path.startsWith('http') ? path : `${BASE_URL}${path}`;
   const res = await fetch(url, {
     ...init,
     headers: {
@@ -163,7 +168,7 @@ export async function fetchDbHealth() {
 }
 
 export async function fetchMqttHealth() {
-  return http<MqttHealthResponse>('/mqtt/health');
+  return http<MqttHealthResponse>('/mqtt/health', undefined, true);
 }
 
 // MQTT Publish
