@@ -14,7 +14,7 @@ app.use('*', logger());
 app.use(
   '*',
   cors({
-    origin: ['https://smart-farming-dashboard-eosin.vercel.app','http://localhost:3000', 'http://localhost:3001', '*'], // need to be change into real url if already acc
+    origin: ['https://smart-farming-dashboard-eosin.vercel.app','http://localhost:3000', 'http://localhost:3001',], // need to be change into real url if already acc
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'X-ESP32-Device'],
   }),
