@@ -14,7 +14,11 @@ app.use('*', logger());
 app.use(
   '*',
   cors({
-    origin: ['https://smart-farming-dashboard-eosin.vercel.app','http://localhost:3000', 'http://localhost:3001',], // need to be change into real url if already acc
+    origin: [
+      'https://smart-farming-dashboard-eosin.vercel.app',
+      'http://localhost:3000',
+      'http://localhost:3001',
+    ], // need to be change into real url if already acc
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'X-ESP32-Device'],
   }),
@@ -89,10 +93,14 @@ serve(
     console.log(
       `🔍 Health check at http://localhost:${info.port}/api/health`,
     );
-    // Start MQTT subscriptions (non-blocking)
-    startMqttListeners().catch((e) =>
-      console.error('Failed to start MQTT listeners:', e),
-    );
+    // Start MQTT subscriptions only on persistent runtimes
+    if (!process.env.VERCEL && process.env.ENABLE_MQTT !== '0') {
+      startMqttListeners().catch((e) =>
+        console.error('Failed to start MQTT listeners:', e),
+      );
+    } else {
+      console.log('⚠️ Skipping MQTT listeners in serverless runtime');
+    }
   },
 );
 

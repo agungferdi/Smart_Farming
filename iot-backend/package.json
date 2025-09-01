@@ -5,11 +5,14 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "prisma generate && node dist/index.js",
+    "start:worker": "node dist/mqtt-worker.js",
+    "dev:worker": "tsx watch src/mqtt-worker.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.0",
     "@prisma/client": "^6.14.0",
+    "dotenv": "^16.4.5",
     "hono": "^4.9.4",
     "mqtt": "^5.14.0",
     "prisma": "^6.14.0",
