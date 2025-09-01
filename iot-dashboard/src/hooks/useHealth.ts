@@ -11,17 +11,14 @@ export function useHealth() {
   const apiQ = useQuery({
     queryKey: ['health', 'api'],
     queryFn: fetchApiHealth,
-    refetchInterval: 60_000,
   });
   const dbQ = useQuery({
     queryKey: ['health', 'db'],
     queryFn: fetchDbHealth,
-    refetchInterval: 60_000,
   });
   const mqttQ = useQuery({
     queryKey: ['health', 'mqtt'],
     queryFn: fetchMqttHealth,
-    refetchInterval: 10_000,
   });
 
   return {
