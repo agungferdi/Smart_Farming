@@ -1,0 +1,74 @@
+name: Keep MQTT Service awake
+
+on:
+  schedule:
+    # Once per day at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: 'Number of times to ping within this run (defaults to 1)'
+        required: false
+        default: '1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keep-mqtt-service-awake
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      HEALTH_URL: ${{ secrets.HEALTH_URL }}
+    steps:
+      - name: Validate HEALTH_URL is set
+        shell: bash
+        run: |
+          if [ -z "$HEALTH_URL" ]; then
+            echo "HEALTH_URL secret is not set. Add a repository secret named HEALTH_URL containing your health endpoint URL."
+            # Keep job green to avoid noise
+            exit 0
+          fi
+      - name: Show context
+        run: |
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Ref: $GITHUB_REF"
+          echo "Time (UTC): $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+      - name: Ping backend health endpoint (with retries)
+        shell: bash
+        run: |
+          set +e
+          RUNS=${{ github.event.inputs.runs }}
+          if [ -z "$RUNS" ]; then RUNS=1; fi
+
+          echo "Pinging $HEALTH_URL ($RUNS time(s))"
+
+          # For each requested run, do a few retry attempts
+          for r in $(seq 1 "$RUNS"); do
+            echo "Run $r:"
+            ATTEMPTS=3
+            BACKOFF=10
+            for i in $(seq 1 $ATTEMPTS); do
+              START=$(date +%s)
+              HTTP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "$HEALTH_URL" || echo "000")
+              END=$(date +%s)
+              DURATION=$((END-START))
+              echo "  Attempt $i/$ATTEMPTS -> HTTP $HTTP_CODE in ${DURATION}s"
+              if [ "$HTTP_CODE" = "200" ]; then
+                echo "  Success"
+                break
+              fi
+              if [ "$i" -lt "$ATTEMPTS" ]; then
+                echo "  Waiting ${BACKOFF}s before retry..."
+                sleep $BACKOFF
+              fi
+            done
+          done
+
+          # Keep the workflow green to avoid noise, even if health fails.
+          exit 0
