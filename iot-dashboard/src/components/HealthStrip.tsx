@@ -19,11 +19,19 @@ export function HealthStrip() {
     icon: React.ComponentType<{ className?: string }>;
   }) => (
     <div className="flex items-center gap-2">
-      <Icon
-        className={`h-4 w-4 ${
-          ok ? 'text-green-600' : 'text-red-600'
+      <span
+        className={`p-1.5 rounded-full ${
+          ok
+            ? 'bg-green-500/15 dark:bg-green-500/25'
+            : 'bg-red-500/15 dark:bg-red-500/25'
         }`}
-      />
+      >
+        <Icon
+          className={`h-4 w-4 ${
+            ok ? 'text-green-500' : 'text-red-500'
+          }`}
+        />
+      </span>
       <Badge variant={ok ? 'secondary' : 'destructive'}>
         {label}: {ok ? 'OK' : 'DOWN'}
       </Badge>
@@ -31,7 +39,7 @@ export function HealthStrip() {
   );
 
   return (
-    <Card className="border-amber-100 bg-amber-50/60">
+    <Card>
       <CardContent className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-wrap">
           <Item ok={api} label="API" icon={Activity} />
@@ -44,7 +52,14 @@ export function HealthStrip() {
           onClick={() => refetchAll()}
           disabled={loading}
         >
-          Refresh
+          {loading ? (
+            <span className="inline-flex items-center gap-2">
+              <span className="size-3 rounded-full bg-primary animate-pulse" />
+              Refreshing
+            </span>
+          ) : (
+            'Refresh'
+          )}
         </Button>
       </CardContent>
     </Card>

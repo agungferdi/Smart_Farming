@@ -15,7 +15,6 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { HealthStrip } from '@/components/HealthStrip';
 import { RelayControl } from '@/components/RelayControl';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +23,7 @@ import {
   Droplets as DropletsIcon,
   Sprout,
 } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function Dashboard() {
   const PAGE_SIZE = 100;
@@ -35,10 +35,12 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
-          <p className="text-gray-600">Loading sensor data...</p>
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">
+            Loading sensor data...
+          </p>
         </div>
       </div>
     );
@@ -46,15 +48,15 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Database className="h-8 w-8 mx-auto mb-4 text-red-500" />
+          <Database className="h-8 w-8 mx-auto mb-4 text-destructive" />
           <p className="text-red-600 mb-4">
             Error loading data: {error}
           </p>
           <button
             onClick={() => refetch()}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg"
           >
             Retry
           </button>
@@ -64,18 +66,18 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <Droplets className="h-8 w-8 text-blue-500 mr-3" />
+              <Droplets className="h-8 w-8 text-primary mr-3" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-foreground">
                   Smart Irrigation Dashboard
                 </h1>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Real-time monitoring with automated water pump
                   control and rain detection
                 </p>
@@ -83,10 +85,10 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-muted-foreground">
                   Last updated
                 </div>
-                <div className="text-sm font-medium text-gray-900">
+                <div className="text-sm font-medium text-foreground">
                   {data.length > 0
                     ? format(
                         new Date(data[0].createdAt),
@@ -95,10 +97,7 @@ export default function Dashboard() {
                     : format(new Date(), 'MMM dd, HH:mm:ss')}
                 </div>
               </div>
-              <Button onClick={() => refetch()}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
+              <ThemeToggle />
             </div>
           </div>
         </div>
@@ -151,18 +150,18 @@ export default function Dashboard() {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
               <div className="text-center">
-                <span className="block text-gray-700 text-sm font-medium">
+                <span className="block text-muted-foreground text-sm font-medium">
                   Total Records
                 </span>
-                <span className="block font-bold text-lg text-gray-900">
+                <span className="block font-bold text-lg text-foreground">
                   {data.length}
                 </span>
               </div>
               <div className="text-center">
-                <span className="block text-gray-700 text-sm font-medium">
+                <span className="block text-muted-foreground text-sm font-medium">
                   Date Range
                 </span>
-                <span className="block font-semibold text-sm text-gray-900">
+                <span className="block font-semibold text-sm text-foreground">
                   {data.length > 0
                     ? `${format(
                         new Date(data[data.length - 1].createdAt),
@@ -178,11 +177,11 @@ export default function Dashboard() {
                 <>
                   {/* Temperature */}
                   <div className="text-center">
-                    <span className="text-gray-700 text-sm font-medium flex items-center justify-center gap-1">
+                    <span className="text-muted-foreground text-sm font-medium flex items-center justify-center gap-1">
                       <Thermometer className="h-4 w-4 text-red-500" />{' '}
                       Temperature
                     </span>
-                    <span className="block font-semibold text-sm text-gray-900">
+                    <span className="block font-semibold text-sm text-foreground">
                       Min{' '}
                       {Math.min(
                         ...data.map((d) => d.temperature),
@@ -196,11 +195,11 @@ export default function Dashboard() {
                   </div>
                   {/* Humidity */}
                   <div className="text-center">
-                    <span className="text-gray-700 text-sm font-medium flex items-center justify-center gap-1">
+                    <span className="text-muted-foreground text-sm font-medium flex items-center justify-center gap-1">
                       <DropletsIcon className="h-4 w-4 text-blue-500" />{' '}
                       Humidity
                     </span>
-                    <span className="block font-semibold text-sm text-gray-900">
+                    <span className="block font-semibold text-sm text-foreground">
                       Min{' '}
                       {Math.min(
                         ...data.map((d) => d.humidity),
@@ -214,11 +213,11 @@ export default function Dashboard() {
                   </div>
                   {/* Soil Moisture */}
                   <div className="text-center">
-                    <span className="text-gray-700 text-sm font-medium flex items-center justify-center gap-1">
+                    <span className="text-muted-foreground text-sm font-medium flex items-center justify-center gap-1">
                       <Sprout className="h-4 w-4 text-green-600" />{' '}
                       Soil Moisture
                     </span>
-                    <span className="block font-semibold text-sm text-gray-900">
+                    <span className="block font-semibold text-sm text-foreground">
                       Min{' '}
                       {Math.min(...data.map((d) => d.soilMoisture))}%
                       · Max{' '}
@@ -226,10 +225,10 @@ export default function Dashboard() {
                     </span>
                   </div>
                   <div className="text-center">
-                    <span className="block text-gray-700 text-sm font-medium">
+                    <span className="block text-muted-foreground text-sm font-medium">
                       Water Level Status
                     </span>
-                    <span className="block font-semibold text-sm text-gray-900">
+                    <span className="block font-semibold text-sm text-foreground">
                       {(() => {
                         const waterLevelCounts = data.reduce(
                           (acc, item) => {

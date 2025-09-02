@@ -11,6 +11,7 @@ import {
   CardContent,
   CardAction,
 } from '@/components/ui/card';
+import { Badge } from './ui/badge';
 
 export function RelayLogCard() {
   const PAGE_SIZE = 10;
@@ -42,14 +43,16 @@ export function RelayLogCard() {
   if (loading) {
     return (
       <Card>
-        <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-100 rounded"></div>
-            ))}
+        <CardContent>
+          <div className="animate-pulse">
+            <div className="h-4 bg-muted/60 rounded w-1/3 mb-4"></div>
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-16 bg-muted/40 rounded" />
+              ))}
+            </div>
           </div>
-        </div>
+        </CardContent>
       </Card>
     );
   }
@@ -60,28 +63,23 @@ export function RelayLogCard() {
   return (
     <Card>
       <CardHeader className="flex items-center justify-between">
-        <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Power className="h-5 w-5 text-blue-500" /> Water Pump
-          Status
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <Power className="h-5 w-5 text-primary" /> Water Pump Status
         </CardTitle>
         <CardAction>
-          <div
-            className={`px-3 py-1 rounded-full text-xs font-medium ${
-              latestStatus
-                ? 'bg-green-100 text-green-800'
-                : 'bg-gray-100 text-gray-800'
-            }`}
-          >
+          <Badge variant={latestStatus ? 'default' : 'secondary'}>
             {latestStatus ? 'ACTIVE' : 'INACTIVE'}
-          </div>
+          </Badge>
         </CardAction>
       </CardHeader>
 
       {relayLogs.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          <Activity className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-          <p>No pump activity recorded yet</p>
-        </div>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            <Activity className="h-12 w-12 mx-auto mb-3 text-muted-foreground/40" />
+            <p>No pump activity recorded yet</p>
+          </div>
+        </CardContent>
       ) : (
         <CardContent className="space-y-3 max-h-80 overflow-y-auto">
           <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
@@ -93,8 +91,8 @@ export function RelayLogCard() {
               key={log.id}
               className={`p-4 rounded-lg border-l-4 ${
                 log.relayStatus
-                  ? 'bg-green-50 border-green-400'
-                  : 'bg-red-50 border-red-400'
+                  ? 'bg-green-500/10 dark:bg-green-500/15 border-green-500'
+                  : 'bg-red-500/10 dark:bg-red-500/15 border-red-500'
               }`}
             >
               <div className="flex items-start justify-between">
@@ -110,8 +108,8 @@ export function RelayLogCard() {
                     <span
                       className={`font-medium text-sm ${
                         log.relayStatus
-                          ? 'text-green-800'
-                          : 'text-red-800'
+                          ? 'text-green-700 dark:text-green-400'
+                          : 'text-red-700 dark:text-red-400'
                       }`}
                     >
                       {log.relayStatus
@@ -119,10 +117,10 @@ export function RelayLogCard() {
                         : 'PUMP STOPPED'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-600 mb-2">
+                  <p className="text-xs text-muted-foreground mb-2">
                     {log.triggerReason}
                   </p>
-                  <div className="flex items-center space-x-4 text-xs text-gray-500">
+                  <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                     {log.temperature !== null && (
                       <span>🌡️ {log.temperature}°C</span>
                     )}
@@ -136,7 +134,7 @@ export function RelayLogCard() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center text-xs text-gray-400">
+                <div className="flex items-center text-xs text-muted-foreground/70">
                   <Clock className="h-3 w-3 mr-1" />
                   {format(new Date(log.createdAt), 'HH:mm:ss')}
                 </div>

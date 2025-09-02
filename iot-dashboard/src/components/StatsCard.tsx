@@ -1,5 +1,6 @@
 import type { SensorData } from '@/hooks/useSensorData';
 import { Thermometer, Droplets, Sprout } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface StatsCardProps {
   data: SensorData[];
@@ -9,9 +10,13 @@ export function StatsCard({ data }: StatsCardProps) {
   if (data.length === 0) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-md p-6 border">
-          <div className="text-gray-500">No data available</div>
-        </div>
+        <Card>
+          <CardContent>
+            <div className="text-muted-foreground">
+              No data available
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -33,8 +38,8 @@ export function StatsCard({ data }: StatsCardProps) {
       average: avgTemp,
       unit: '°C',
       icon: Thermometer,
-      color: 'text-red-500',
-      bgColor: 'bg-red-50',
+      iconColor: 'text-red-500',
+      bubbleColor: 'bg-red-500/10 dark:bg-red-500/20',
     },
     {
       title: 'Humidity',
@@ -42,8 +47,8 @@ export function StatsCard({ data }: StatsCardProps) {
       average: avgHumidity,
       unit: '%',
       icon: Droplets,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-500',
+      bubbleColor: 'bg-blue-500/10 dark:bg-blue-500/20',
     },
     {
       title: 'Soil Moisture',
@@ -51,8 +56,8 @@ export function StatsCard({ data }: StatsCardProps) {
       average: avgSoilMoisture,
       unit: '%',
       icon: Sprout,
-      color: 'text-green-500',
-      bgColor: 'bg-green-50',
+      iconColor: 'text-green-500',
+      bubbleColor: 'bg-green-500/10 dark:bg-green-500/20',
     },
   ];
 
@@ -61,33 +66,32 @@ export function StatsCard({ data }: StatsCardProps) {
       {stats.map((stat, index) => {
         const Icon = stat.icon;
         return (
-          <div
-            key={index}
-            className="bg-white rounded-lg shadow-md p-6 border"
-          >
-            <div className="flex items-center">
-              <div
-                className={`p-3 rounded-full ${stat.bgColor} mr-4`}
-              >
-                <Icon className={`h-6 w-6 ${stat.color}`} />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                  {stat.title}
-                </h3>
-                <div className="mt-1">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {stat.current}
-                    {stat.unit}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Avg: {stat.average}
-                    {stat.unit}
+          <Card key={index}>
+            <CardContent>
+              <div className="flex items-center">
+                <div
+                  className={`p-3 rounded-full mr-4 ${stat.bubbleColor}`}
+                >
+                  <Icon className={`h-6 w-6 ${stat.iconColor}`} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                    {stat.title}
+                  </h3>
+                  <div className="mt-1">
+                    <div className="text-2xl font-bold text-foreground">
+                      {stat.current}
+                      {stat.unit}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Avg: {stat.average.toFixed(1)}
+                      {stat.unit}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         );
       })}
     </div>
