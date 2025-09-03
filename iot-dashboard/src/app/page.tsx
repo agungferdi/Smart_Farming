@@ -70,25 +70,28 @@ export default function Dashboard() {
       {/* Header */}
       <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <Droplets className="h-8 w-8 text-primary mr-3" />
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-4 sm:py-6">
+            <div className="flex items-center mb-4 sm:mb-0">
+              <Droplets className="h-6 w-6 sm:h-8 sm:w-8 text-primary mr-2 sm:mr-3 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
                   Smart Irrigation Dashboard
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                   Real-time monitoring with automated water pump
                   control and rain detection
                 </p>
+                <p className="text-xs text-muted-foreground sm:hidden">
+                  Real-time monitoring
+                </p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <div className="text-sm text-muted-foreground">
+            <div className="flex items-center justify-between sm:justify-end space-x-3 sm:space-x-4">
+              <div className="text-left sm:text-right">
+                <div className="text-xs sm:text-sm text-muted-foreground">
                   Last updated
                 </div>
-                <div className="text-sm font-medium text-foreground">
+                <div className="text-xs sm:text-sm font-medium text-foreground">
                   {data.length > 0
                     ? format(
                         new Date(data[0].createdAt),
