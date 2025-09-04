@@ -9,6 +9,7 @@ export type SensorData = {
   temperature: number;
   humidity: number;
   soilMoisture: number;
+  soilTemperature: number | null;
   rainDetected: boolean;
   waterLevel: string;
   createdAt: string;
@@ -23,6 +24,8 @@ function mapSensor(be: SensorDataBE): SensorData {
     temperature: toNum(be.temperature),
     humidity: toNum(be.humidity),
     soilMoisture: toNum(be.soilMoisture),
+    soilTemperature:
+      be.soilTemperature !== null ? toNum(be.soilTemperature) : null,
     rainDetected: Boolean(be.rainDetected),
     waterLevel: be.waterLevel,
     createdAt: be.createdAt,

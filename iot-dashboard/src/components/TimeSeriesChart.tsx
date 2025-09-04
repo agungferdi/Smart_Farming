@@ -57,6 +57,10 @@ export function TimeSeriesChart({ data }: TimeSeriesChartProps) {
       label: 'Soil Moisture (%)',
       color: 'rgb(34, 197, 94)',
     },
+    soilTemperature: {
+      label: 'Soil Temperature (°C)',
+      color: 'rgb(245, 158, 11)', // amber-500
+    },
   };
 
   return (
@@ -79,12 +83,15 @@ export function TimeSeriesChart({ data }: TimeSeriesChartProps) {
                   : String(value)
               }
               formatter={(val, name) => {
+                if (val === null) return ['N/A', String(name)];
                 if (name === 'temperature')
                   return [`${val} °C`, 'Temperature'];
                 if (name === 'humidity')
                   return [`${val} %`, 'Humidity'];
                 if (name === 'soilMoisture')
                   return [`${val} %`, 'Soil Moisture'];
+                if (name === 'soilTemperature')
+                  return [`${val} °C`, 'Soil Temperature'];
                 return [String(val), String(name)];
               }}
             />
@@ -112,6 +119,14 @@ export function TimeSeriesChart({ data }: TimeSeriesChartProps) {
           yAxisId="right"
           dataKey="soilMoisture"
           stroke="var(--color-soilMoisture)"
+          dot={false}
+          strokeWidth={2}
+        />
+        <Line
+          type="monotone"
+          yAxisId="left"
+          dataKey="soilTemperature"
+          stroke="var(--color-soilTemperature)"
           dot={false}
           strokeWidth={2}
         />

@@ -130,7 +130,8 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle>Trends (Last 24h)</CardTitle>
             <CardDescription>
-              Temperature, Humidity, and Soil Moisture
+              Temperature, Humidity, Soil Moisture, and Soil
+              Temperature
             </CardDescription>
           </CardHeader>
           <CardContent className="h-96">
@@ -151,7 +152,7 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <span className="block text-muted-foreground text-sm font-medium">
                   Total Records
@@ -225,6 +226,32 @@ export default function Dashboard() {
                       {Math.min(...data.map((d) => d.soilMoisture))}%
                       · Max{' '}
                       {Math.max(...data.map((d) => d.soilMoisture))}%
+                    </span>
+                  </div>
+                  {/* Soil Temperature */}
+                  <div className="text-center">
+                    <span className="text-muted-foreground text-sm font-medium flex items-center justify-center gap-1">
+                      <Thermometer className="h-4 w-4 text-amber-500" />{' '}
+                      Soil Temperature
+                    </span>
+                    <span className="block font-semibold text-sm text-foreground">
+                      {(() => {
+                        const soilTempData = data.filter(
+                          (d) => d.soilTemperature !== null,
+                        );
+                        return soilTempData.length > 0
+                          ? `Min ${Math.min(
+                              ...soilTempData.map(
+                                (d) => d.soilTemperature || 0,
+                              ),
+                            ).toFixed(1)}°C · 
+                           Max ${Math.max(
+                             ...soilTempData.map(
+                               (d) => d.soilTemperature || 0,
+                             ),
+                           ).toFixed(1)}°C`
+                          : 'N/A';
+                      })()}
                     </span>
                   </div>
                   <div className="text-center">

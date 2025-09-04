@@ -30,6 +30,16 @@ export function StatsCard({ data }: StatsCardProps) {
   const avgSoilMoisture =
     data.reduce((sum, item) => sum + item.soilMoisture, 0) /
     data.length;
+  const validSoilTempData = data.filter(
+    (item) => item.soilTemperature !== null,
+  );
+  const avgSoilTemperature =
+    validSoilTempData.length > 0
+      ? validSoilTempData.reduce(
+          (sum, item) => sum + (item.soilTemperature || 0),
+          0,
+        ) / validSoilTempData.length
+      : null;
 
   const stats = [
     {
@@ -59,10 +69,19 @@ export function StatsCard({ data }: StatsCardProps) {
       iconColor: 'text-green-500',
       bubbleColor: 'bg-green-500/10 dark:bg-green-500/20',
     },
+    {
+      title: 'Soil Temperature',
+      current: latest.soilTemperature,
+      average: avgSoilTemperature,
+      unit: '°C',
+      icon: Thermometer,
+      iconColor: 'text-amber-500',
+      bubbleColor: 'bg-amber-500/10 dark:bg-amber-500/20',
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       {stats.map((stat, index) => {
         const Icon = stat.icon;
         return (
@@ -80,12 +99,15 @@ export function StatsCard({ data }: StatsCardProps) {
                   </h3>
                   <div className="mt-1">
                     <div className="text-2xl font-bold text-foreground">
-                      {stat.current}
-                      {stat.unit}
+                      {stat.current !== null
+                        ? `${stat.current}${stat.unit}`
+                        : 'N/A'}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Avg: {stat.average.toFixed(1)}
-                      {stat.unit}
+                      Avg:{' '}
+                      {stat.average !== null
+                        ? `${stat.average.toFixed(1)}${stat.unit}`
+                        : 'N/A'}
                     </div>
                   </div>
                 </div>
