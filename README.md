@@ -9,13 +9,7 @@ A comprehensive IoT-based smart farming system featuring ESP32 microcontrollers,
 
 ## 🏗️ System Architecture
 
-### **MQTT Communication Flow**
-
-```
-ESP32 (Publisher) → HiveMQ Cloud → Backend (Subscriber) → Supabase PostgreSQL
-                ↘               ↗
-Frontend (Publisher) → Relay Commands → ESP32 (Subscriber)
-```
+![System Design](assets/System_Design.png)
 
 ### **Core Components**
 
