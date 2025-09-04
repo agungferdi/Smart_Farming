@@ -2,12 +2,13 @@
 
 A comprehensive IoT-based smart farming system featuring ESP32 microcontrollers, environmental monitoring sensors, automated irrigation control, and real-time web dashboard. The system uses MQTT communication via HiveMQ Cloud for real-time data exchange and remote control capabilities.
 
-## 🚀 Live Deployments
-
-- **Frontend Dashboard**: [https://smart-farming-dashboard-eosin.vercel.app/](https://smart-farming-dashboard-eosin.vercel.app/)
-- **Backend API**: [https://smart-farming-ashy-omega.vercel.app/](https://smart-farming-ashy-omega.vercel.app/)
-
 ## 🏗️ System Architecture
+
+```
+ESP32 (Publisher) → HiveMQ Cloud → Backend (Subscriber) → Supabase PostgreSQL
+                ↘               ↗
+Frontend (Publisher) → Relay Commands → ESP32 (Subscriber)
+```
 
 ![System Design](assets/System_Design.png)
 
