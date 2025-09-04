@@ -10,19 +10,15 @@ A comprehensive IoT-based smart farming system featuring ESP32 microcontrollers,
 ## 🏗️ System Architecture
 
 ### **MQTT Communication Flow**
+
 ```
 ESP32 (Publisher) → HiveMQ Cloud → Backend (Subscriber) → Supabase PostgreSQL
                 ↘               ↗
 Frontend (Publisher) → Relay Commands → ESP32 (Subscriber)
 ```
 
-**MQTT Topics:**
-- **Sensor Data**: `sf/esp32-01/sensor` (ESP32 → Backend)
-- **Relay Logs**: `sf/esp32-01/relay` (ESP32 → Backend)  
-- **Relay Commands**: `sf/devices/relay/command` (Frontend → ESP32)
-- **Device Status**: `sf/esp32-01/status` (ESP32 → Backend)
-
 ### **Core Components**
+
 1. **ESP32 IoT Device** - Environmental monitoring and actuator control
 2. **HiveMQ Cloud** - MQTT broker for real-time communication
 3. **Backend API** - Data processing and MQTT subscription (Deployed on Northflank)
@@ -32,6 +28,7 @@ Frontend (Publisher) → Relay Commands → ESP32 (Subscriber)
 ## 📱 Technology Stack
 
 ### **IoT Device (ESP32)**
+
 - **Platform**: PlatformIO with Arduino Framework
 - **Microcontroller**: ESP32 DevKit v1
 - **Connectivity**: SIM7670C 4G LTE Module
@@ -39,14 +36,16 @@ Frontend (Publisher) → Relay Commands → ESP32 (Subscriber)
 - **Libraries**: PubSubClient, DHT sensor, OneWire, U8g2
 
 ### **Backend API**
+
 - **Runtime**: Node.js with TypeScript
-- **Framework**: Hono (lightweight web framework)
+- **Framework**: Hono
 - **Database**: Supabase PostgreSQL with Prisma ORM
 - **MQTT Client**: Custom implementation for HiveMQ Cloud
-- **Deployment**: Northflank 
+- **Deployment**: Northflank for the MQTT service and Vercel (Serverless) for the REST API
 - **Authentication**: API key-based security
 
 ### **Frontend Dashboard**
+
 - **Framework**: Next.js 14 with App Router
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS with shadcn/ui components
@@ -56,6 +55,7 @@ Frontend (Publisher) → Relay Commands → ESP32 (Subscriber)
 - **Deployment**: Vercel
 
 ### **Database & Communication**
+
 - **Database**: Supabase PostgreSQL
 - **MQTT Broker**: HiveMQ Cloud
 - **ORM**: Prisma with TypeScript
@@ -64,10 +64,12 @@ Frontend (Publisher) → Relay Commands → ESP32 (Subscriber)
 ## Hardware Components
 
 ### Main Controller
+
 - **ESP32 DevKit**: Main microcontroller with WiFi capability
 - **SIM7670C GSM Module**: 4G LTE cellular connectivity for remote monitoring
 
 ### Sensors
+
 - **DHT22/DHT11**: Temperature and humidity sensor
 - **Capacitive Soil Moisture Sensor v1.2**: Analog soil moisture detection with corrosion resistance
 - **Rain Detector**: Weather monitoring with digital output
@@ -75,30 +77,32 @@ Frontend (Publisher) → Relay Commands → ESP32 (Subscriber)
 - **Water Level Sensor**: monitoring to prevent dry running
 
 ### Actuators & Output
+
 - **5V Relay Module**: Water pump control switching
 - **Water Pump**: 12V submersible or surface pump
 - **SSD1306 OLED Display**: 128x64 I2C display for essential system status
 
 ### Communication & Power
+
 - **Power Supply Module**: Voltage regulation and distribution via breadboard connection
 - **Breadboard**: Prototype connections and signal distribution
 
 ## Pin Configuration
 
-| Component | ESP32 Pin | Connection Type |
-|-----------|-----------|-----------------|
-| DHT22 Sensor | GPIO16 | Digital |
-| Soil Moisture | GPIO35 | Analog |
-| Rain Detector | GPIO18 | Digital |
-| Relay Control | GPIO17 | Digital Output |
-| Water Pump 12V | Relay | Switched Load |
-| OLED SDA | GPIO21 | I2C |
-| OLED SCL | GPIO22 | I2C |
-| Soil Temperature (DS18B20) | GPIO23 | OneWire |
-| SIM7670C GSM RX | GPIO25 | UART |
-| SIM7670C GSM TX | GPIO26 | UART |
-| Water Level | GPIO34 | Analog |
-| Power Supply Module | Breadboard | VCC/GND Distribution |
+| Component                  | ESP32 Pin  | Connection Type      |
+| -------------------------- | ---------- | -------------------- |
+| DHT22 Sensor               | GPIO16     | Digital              |
+| Soil Moisture              | GPIO35     | Analog               |
+| Rain Detector              | GPIO18     | Digital              |
+| Relay Control              | GPIO17     | Digital Output       |
+| Water Pump 12V             | Relay      | Switched Load        |
+| OLED SDA                   | GPIO21     | I2C                  |
+| OLED SCL                   | GPIO22     | I2C                  |
+| Soil Temperature (DS18B20) | GPIO23     | OneWire              |
+| SIM7670C GSM RX            | GPIO25     | UART                 |
+| SIM7670C GSM TX            | GPIO26     | UART                 |
+| Water Level                | GPIO34     | Analog               |
+| Power Supply Module        | Breadboard | VCC/GND Distribution |
 
 ## Wiring Diagram
 
@@ -109,6 +113,7 @@ _Complete schematic showing ESP32 connections to sensors (DHT22, soil moisture, 
 ## System Features
 
 ### Environmental Monitoring
+
 - Real-time temperature and humidity measurement
 - Soil moisture level tracking with capacitive sensor
 - Weather monitoring with rain detection
@@ -116,6 +121,7 @@ _Complete schematic showing ESP32 connections to sensors (DHT22, soil moisture, 
 - Water reservoir level monitoring
 
 ### Automated Control
+
 - Smart irrigation based on soil moisture thresholds
 - Temperature-compensated watering schedules
 - Rain detection with automatic irrigation override
@@ -123,6 +129,7 @@ _Complete schematic showing ESP32 connections to sensors (DHT22, soil moisture, 
 - Manual override capabilities via web interface
 
 ### Data & Connectivity
+
 - Local OLED display for essential system status
 - 4G LTE communication via SIM7670C for remote installations
 - MQTT real-time communication with HiveMQ Cloud
@@ -130,6 +137,7 @@ _Complete schematic showing ESP32 connections to sensors (DHT22, soil moisture, 
 - RESTful API for third-party integrations
 
 ### User Interface
+
 - Modern responsive web dashboard built with Next.js
 - Real-time data visualization with Recharts
 - Historical data analysis and trends
@@ -140,6 +148,7 @@ _Complete schematic showing ESP32 connections to sensors (DHT22, soil moisture, 
 ## 🔌 MQTT Communication Details
 
 ### **ESP32 Device Communication**
+
 ```cpp
 // MQTT Topics Used by ESP32
 #define SENSOR_TOPIC "sf/esp32-01/sensor"      // Publishes sensor data
@@ -149,6 +158,7 @@ _Complete schematic showing ESP32 connections to sensors (DHT22, soil moisture, 
 ```
 
 ### **Sensor Data Payload** (ESP32 → Backend)
+
 ```json
 {
   "device_id": "esp32-01",
@@ -163,6 +173,7 @@ _Complete schematic showing ESP32 connections to sensors (DHT22, soil moisture, 
 ```
 
 ### **Relay Command Payload** (Frontend → ESP32)
+
 ```json
 {
   "device_id": "esp32-01",
@@ -179,11 +190,13 @@ _Complete schematic showing ESP32 connections to sensors (DHT22, soil moisture, 
 ### **Backend REST API**
 
 #### **General Endpoints**
+
 - `GET /api/health` - API health check with database connection status
 - `GET /api/db-test` - Database connection test
 - `GET /api/info` - API information and endpoint documentation
 
 #### **Sensor Data Endpoints**
+
 - `POST /api/sensor-data` - Create new sensor data entry
 - `GET /api/sensor-data` - Retrieve sensor data with pagination
 - `GET /api/sensor-data/latest` - Get latest sensor readings
@@ -193,6 +206,7 @@ _Complete schematic showing ESP32 connections to sensors (DHT22, soil moisture, 
 - `DELETE /api/sensor-data/cleanup` - Cleanup old sensor data records
 
 #### **Relay Log Endpoints**
+
 - `POST /api/relay-log` - Create new relay log entry
 - `GET /api/relay-log` - Retrieve relay logs with pagination
 - `GET /api/relay-log/latest` - Get latest relay log entry
@@ -205,10 +219,12 @@ _Complete schematic showing ESP32 connections to sensors (DHT22, soil moisture, 
 - `DELETE /api/relay-log/cleanup` - Cleanup old relay log records
 
 #### **MQTT Endpoints**
+
 - `GET /api/mqtt/health` - MQTT connection status and health
 - `POST /api/mqtt/publish` - Publish message to specific MQTT topic
 
 ### **Real-time Features**
+
 - MQTT subscription for live sensor data updates
 - WebSocket-like real-time dashboard updates
 - Push notifications for critical alerts
@@ -257,6 +273,7 @@ smart-farming-iot/
 ## Getting Started
 
 ### **ESP32 Setup**
+
 ```bash
 # Install PlatformIO
 pip install platformio
@@ -269,6 +286,7 @@ pio run --target upload
 ```
 
 ### **Backend Setup**
+
 ```bash
 cd iot-backend
 npm install
@@ -276,10 +294,83 @@ npm run dev
 ```
 
 ### **Frontend Setup**
+
 ```bash
 cd iot-dashboard
 npm install
 npm run dev
+```
+
+## Environment Configuration
+
+### Backend Environment Variables (.env)
+
+The backend requires several environment variables for database connection, MQTT configuration, and other settings:
+
+```properties
+# Supabase Database Configuration
+# Connect to Supabase via connection pooling
+DATABASE_URL="postgresql://[username]:[password]@[host]:[port]/[database]?pgbouncer=true"
+# Direct connection to the database. Used for migrations
+DIRECT_URL="postgresql://[username]:[password]@[host]:[port]/[database]"
+
+# MQTT Configuration
+MQTT_PORT=8883
+MQTT_PROTOCOL="mqtts"
+MQTT_HOST="[your-hivemq-cloud-instance].s1.eu.hivemq.cloud"
+MQTT_USERNAME="[your-mqtt-username]"
+MQTT_PASSWORD="[your-mqtt-password]"
+ENABLE_MQTT=1
+
+# MQTT topic subscriptions (comma-separated lists supported)
+# Wildcards: + for single level, # for multi-level
+MQTT_SENSOR_TOPICS="sf/+/sensor"
+MQTT_RELAY_TOPICS="sf/+/relay"
+```
+
+### Frontend Environment Variables (.env.local)
+
+The frontend requires configuration for API and MQTT service endpoints:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL='https://[your-backend-api-url]/api'
+NEXT_PUBLIC_MQTT_SERVICE_BASE_URL='https://[your-mqtt-service-url]/api'
+```
+
+### ESP32 Device Configuration (config.h)
+
+Create a `config.h` file in the `include` directory with the following settings:
+
+```cpp
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// WiFi Configuration
+#define WIFI_SSID "YourWiFiSSID"
+#define WIFI_PASSWORD "YourWiFiPassword"
+
+// MQTT Configuration
+#define MQTT_SERVER "ee769d47a04a469da8fe04f0427dfd0b.s1.eu.hivemq.cloud"
+#define MQTT_PORT 8883
+#define MQTT_USERNAME "smart_farming_iot"
+#define MQTT_PASSWORD "YourMQTTPassword"
+#define CLIENT_ID "ESP32_SmartFarming_01"
+
+// MQTT Topics
+#define SENSOR_TOPIC "sf/esp32-01/sensor"
+#define RELAY_TOPIC "sf/esp32-01/relay"
+#define COMMAND_TOPIC "sf/devices/relay/command"
+#define STATUS_TOPIC "sf/esp32-01/status"
+
+// Pin Configuration
+#define DHT_PIN 16
+#define SOIL_MOISTURE_PIN 35
+#define RAIN_SENSOR_PIN 18
+#define RELAY_PIN 17
+#define ONE_WIRE_BUS 23
+#define WATER_LEVEL_PIN 34
+
+#endif // CONFIG_H
 ```
 
 ## Safety Considerations
@@ -289,3 +380,7 @@ npm run dev
 - Ensure proper grounding of all metal components
 - Regular inspection of waterproof seals and connections
 - Emergency manual shutoff should be accessible
+
+## Closing
+
+This project showcases a complete IoT solution for smart farming, integrating hardware, software, and cloud services. It is designed for scalability and adaptability to various agricultural scenarios. Contributions and improvements are welcome!
