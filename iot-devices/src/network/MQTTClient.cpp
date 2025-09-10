@@ -205,7 +205,7 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
     }
 }
 
-bool MQTTClient::publishSensorData(float temp, float humidity, int soilMoisture, bool rain, String waterLevel) {
+bool MQTTClient::publishSensorData(float temp, float humidity, int soilMoisture, float soilTemp, bool rain, String waterLevel) {
     if (!mqttClient.connected()) {
         Serial.println("MQTT not connected, cannot publish sensor data");
         return false;
@@ -215,7 +215,7 @@ bool MQTTClient::publishSensorData(float temp, float humidity, int soilMoisture,
     doc["temperature"] = temp;
     doc["humidity"] = humidity;
     doc["soilMoisture"] = soilMoisture;
-    doc["soilTemperature"] = 25.3;  // Default value since we don't have soil temp sensor
+    doc["soilTemperature"] = soilTemp;  // Use actual soil temperature sensor reading
     doc["rainDetected"] = rain;
     doc["waterLevel"] = waterLevel;
 

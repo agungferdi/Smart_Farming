@@ -66,19 +66,19 @@ bool SoilTemperatureSensor::isDataValid() const {
 bool SoilTemperatureSensor::validateReading(float temp) {
     // Check for DS18B20 error codes
     if (temp == DEVICE_DISCONNECTED_C) {
-        Serial.println("❌ DS18B20 sensor disconnected");
+        Serial.println("DS18B20 sensor disconnected");
         return false;
     }
     
     // Check if temperature is within valid range
     if (temp < MIN_VALID_TEMP || temp > MAX_VALID_TEMP) {
-        Serial.printf("❌ Soil temperature out of range: %.2f°C\n", temp);
+        Serial.printf("Soil temperature out of range: %.2f°C\n", temp);
         return false;
     }
     
     // Additional sanity check for typical soil temperatures
     if (temp < -20.0 || temp > 60.0) {
-        Serial.printf("⚠️  Unusual soil temperature: %.2f°C\n", temp);
+        Serial.printf("Unusual soil temperature: %.2f°C\n", temp);
         // Don't return false, just warn - could be legitimate in extreme conditions
     }
     
@@ -86,25 +86,5 @@ bool SoilTemperatureSensor::validateReading(float temp) {
 }
 
 void SoilTemperatureSensor::printDebugInfo() const {
-    Serial.println("=== DS18B20 Soil Temperature Sensor ===");
-    Serial.printf("Pin: GPIO%d\n", pin);
-    Serial.printf("Temperature: %.2f°C\n", temperature);
-    Serial.printf("Data Valid: %s\n", dataValid ? "✓ Yes" : "❌ No");
-    Serial.printf("Precision: 0.0625°C (12-bit)\n");
-    
-    if (dataValid) {
-        // Provide soil temperature context
-        if (temperature < 10.0) {
-            Serial.println("Status: Cold soil - plant growth may be slow");
-        } else if (temperature < 20.0) {
-            Serial.println("Status: Cool soil - moderate growth conditions");
-        } else if (temperature < 30.0) {
-            Serial.println("Status: Warm soil - optimal for most plants");
-        } else if (temperature < 40.0) {
-            Serial.println("Status: Hot soil - may stress some plants");
-        } else {
-            Serial.println("Status: Very hot soil - potential plant damage");
-        }
-    }
-    Serial.println("=====================================");
+    Serial.printf("Soil Temperature: %.2f°C\n", temperature);
 }
