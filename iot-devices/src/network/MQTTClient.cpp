@@ -110,7 +110,7 @@ bool MQTTClient::connectWiFi(const char* ssid, const char* password) {
     Serial.print("Connecting to WiFi");
 
     int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+    while (WiFi.status() != WL_CONNECTED && attempts < MAX_WIFI_ATTEMPTS) {
         delay(500);
         Serial.print(".");
         attempts++;

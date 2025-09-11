@@ -26,6 +26,7 @@ private:
     unsigned long lastReconnectAttempt;
     bool isConnectedFlag;
     static const unsigned long RECONNECT_INTERVAL = 5000;
+    static const int MAX_WIFI_ATTEMPTS = 20;
     
     bool loadCertificates();
     void handleMessage(char* topic, byte* payload, unsigned int length);
