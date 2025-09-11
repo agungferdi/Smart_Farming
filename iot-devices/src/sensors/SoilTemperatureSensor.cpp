@@ -1,8 +1,7 @@
 #include "sensors/SoilTemperatureSensor.h"
 
-// Static constants
-const float SoilTemperatureSensor::MIN_VALID_TEMP = -55.0; // DS18B20 minimum
-const float SoilTemperatureSensor::MAX_VALID_TEMP = 125.0; // DS18B20 maximum
+const float SoilTemperatureSensor::MIN_SOIL_TEMP = -20.0;
+const float SoilTemperatureSensor::MAX_SOIL_TEMP = 60.0;
 
 SoilTemperatureSensor::SoilTemperatureSensor(int sensorPin) 
     : pin(sensorPin), oneWire(sensorPin), sensors(&oneWire) {
@@ -14,7 +13,6 @@ SoilTemperatureSensor::SoilTemperatureSensor(int sensorPin)
 void SoilTemperatureSensor::begin() {
     sensors.begin();
     
-    // Check if sensor is connected
     int deviceCount = sensors.getDeviceCount();
     Serial.printf("DS18B20 Soil Temperature Sensor initialized on GPIO%d\n", pin);
     Serial.printf("Found %d DS18B20 device(s)\n", deviceCount);
@@ -22,7 +20,6 @@ void SoilTemperatureSensor::begin() {
     if (deviceCount == 0) {
         Serial.println("Warning: No DS18B20 sensors found! Check wiring.");
     } else {
-        // Set resolution to 12-bit (0.0625°C precision)
         sensors.setResolution(12);
         Serial.println("DS18B20 resolution set to 12-bit (0.0625°C precision)");
     }
@@ -31,18 +28,13 @@ void SoilTemperatureSensor::begin() {
 bool SoilTemperatureSensor::readData() {
     unsigned long currentTime = millis();
     
-    // Check if enough time has passed since last reading
     if (currentTime - lastReadTime < READ_INTERVAL) {
-        return dataValid; // Return previous reading validity
+        return dataValid;
     }
     
-    // Request temperature conversion
     sensors.requestTemperatures();
-    
-    // Get temperature (index 0 = first sensor)
     float tempReading = sensors.getTempCByIndex(0);
     
-    // Validate reading
     if (validateReading(tempReading)) {
         temperature = tempReading;
         dataValid = true;
@@ -50,7 +42,7 @@ bool SoilTemperatureSensor::readData() {
         return true;
     } else {
         dataValid = false;
-        Serial.println("❌ Invalid soil temperature reading");
+        Serial.println("Invalid soil temperature reading");
         return false;
     }
 }
@@ -64,22 +56,13 @@ bool SoilTemperatureSensor::isDataValid() const {
 }
 
 bool SoilTemperatureSensor::validateReading(float temp) {
-    // Check for DS18B20 error codes
     if (temp == DEVICE_DISCONNECTED_C) {
         Serial.println("DS18B20 sensor disconnected");
         return false;
     }
     
-    // Check if temperature is within valid range
-    if (temp < MIN_VALID_TEMP || temp > MAX_VALID_TEMP) {
-        Serial.printf("Soil temperature out of range: %.2f°C\n", temp);
-        return false;
-    }
-    
-    // Additional sanity check for typical soil temperatures
-    if (temp < -20.0 || temp > 60.0) {
+    if (temp < MIN_SOIL_TEMP || temp > MAX_SOIL_TEMP) {
         Serial.printf("Unusual soil temperature: %.2f°C\n", temp);
-        // Don't return false, just warn - could be legitimate in extreme conditions
     }
     
     return true;

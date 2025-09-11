@@ -26,8 +26,8 @@ public:
     void printDebugInfo() const;
     
     // Static validation constants
-    static const float MIN_VALID_TEMP;
-    static const float MAX_VALID_TEMP;
+    static const float MIN_SOIL_TEMP;
+    static const float MAX_SOIL_TEMP;
 };
 
 #endif

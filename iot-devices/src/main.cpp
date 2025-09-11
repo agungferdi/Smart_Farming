@@ -10,15 +10,12 @@
 #include "display/OLEDDisplay.h"
 #include "network/MQTTClient.h"
 
-// Function declarations
 void initializeComponents();
 bool readAllSensors();
 void controlPump();
 void updateDisplay();
 void sendDataToMQTT();
 void testSensors();
-
-// Initialize components using calibration constants
 DHT11Sensor dht11(Pins::DHT11_PIN, DHT11Config::DHT_TYPE);
 SoilMoistureSensor soilSensor(Pins::SOIL_MOISTURE_PIN); 
 SoilTemperatureSensor soilTempSensor(Pins::SOIL_TEMP_PIN);
@@ -27,20 +24,16 @@ WaterLevelSensor waterSensor(Pins::WATER_LEVEL_PIN);
 RelayController relay(Pins::RELAY_PIN);
 OLEDDisplay oled(Pins::SDA_PIN, Pins::SCL_PIN);
 
-// Initialize MQTT Client with HiveMQ Cloud settings
 MQTTClient mqttClient(MQTT_SERVER, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, 
                       DEVICE_ID, MQTT_TOPIC_SENSOR_DATA, MQTT_TOPIC_RELAY_LOG, MQTT_TOPIC_STATUS, MQTT_TOPIC_RELAY_COMMAND);
 
-// Global variables for remote relay control
 bool remoteRelayCommand = false;
 bool remoteRelayStatus = false;
 String remoteRelayReason = "";
 bool manualOverrideMode = false; 
-// Timing variables
 unsigned long lastSensorRead = 0;
 unsigned long lastDataSent = 0;
 
-// Sensor data validation
 bool sensorDataValid = false;
 
 void setup() {
@@ -51,7 +44,6 @@ void setup() {
     
     initializeComponents();
     
-    // Connect to WiFi and MQTT
     if (mqttClient.connectWiFi(WIFI_SSID, WIFI_PASSWORD)) {
         Serial.println("WiFi connected successfully!");
         
@@ -72,7 +64,6 @@ void setup() {
 void loop() {
     unsigned long currentTime = millis();
     
-    // Handle MQTT connection and message processing
     mqttClient.loop();
     
     if (currentTime - lastSensorRead >= Timing::SENSOR_INTERVAL) {
@@ -99,23 +90,19 @@ void loop() {
 void initializeComponents() {
     Serial.println("Initializing components...");
     
-    // Initialize I2C first (critical for OLED)
     Wire.begin(Pins::SDA_PIN, Pins::SCL_PIN);
     delay(100);
     
-    // Initialize OLED display first
     if (!oled.begin()) {
         Serial.println("OLED initialization failed!");
         Serial.println("Continuing without display...");
     }
     
-    // Initialize other components
     dht11.begin();
     soilTempSensor.begin();
     rainSensor.begin();
     relay.begin();
     
-    // Print sensor configuration
     Serial.printf("DHT11 on GPIO%d, Soil moisture on GPIO%d, Relay on GPIO%d\n", 
                   Pins::DHT11_PIN, Pins::SOIL_MOISTURE_PIN, Pins::RELAY_PIN);
     Serial.printf("Rain sensor on GPIO%d, Water level on GPIO%d\n", 
@@ -159,7 +146,6 @@ void controlPump() {
     String reason;
     bool relayTriggered = false;
     
-    // Check for remote relay command first
     if (remoteRelayCommand) {
         Serial.printf("Processing remote relay command: %s\n", remoteRelayStatus ? "ON" : "OFF");
         
@@ -177,14 +163,12 @@ void controlPump() {
         
         relayTriggered = true;
         
-        // Reset the command flag
         remoteRelayCommand = false;
     } else if (manualOverrideMode) {
         Serial.printf("Manual Override Mode: Relay stays ON (Soil: %d%%, but ignoring automatic control)\n", 
                      soilSensor.getPercentage());
         return; 
     } else {
-        // Normal automatic control based on soil moisture (only when NOT in manual override)
         relay.control(soilSensor.getPercentage(), reason);
         relayTriggered = relay.hasStateChanged();
     }
@@ -192,7 +176,6 @@ void controlPump() {
     if (relayTriggered) {
         relay.printDebugInfo(reason);
         
-        // Publish relay log to MQTT
         bool success = mqttClient.publishRelayLog(relay.isRelayActive(), reason);
         if (!success) {
             Serial.println("Warning: Failed to publish relay log to MQTT");
