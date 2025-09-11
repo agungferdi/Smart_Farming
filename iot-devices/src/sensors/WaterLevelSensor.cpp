@@ -21,7 +21,6 @@ String WaterLevelSensor::getStatus() const {
 }
 
 String WaterLevelSensor::determineStatus(int rawValue) {
-    // Use the centralized calibration function
     return WaterLevelCalibration::determineStatus(rawValue);
 }
 
