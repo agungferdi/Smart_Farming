@@ -172,12 +172,12 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
             return;
         }
         
-        // Extract command based on the new format: { "state": "on"/"off", "sensorReadingId": "123" }
-        if (doc["state"].is<const char*>()) {
-            String state = doc["state"];
-            bool relayStatus = (state == "on");
+        // Handle dashboard format: { "relayStatus": true/false, "sensorReadingId": "768" }
+        if (doc["relayStatus"].is<bool>()) {
+            bool relayStatus = doc["relayStatus"];
+            String state = relayStatus ? "on" : "off";
             
-            Serial.printf("✓ Relay command received - State: %s\n", state.c_str());
+            Serial.printf("✓ Relay command received - RelayStatus: %s\n", relayStatus ? "true" : "false");
             
             // Set global variables for main.cpp to handle
             remoteRelayCommand = true;
@@ -200,7 +200,7 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
                 Serial.printf("Linked to sensor reading ID: %s\n", sensorReadingId.c_str());
             }
         } else {
-            Serial.println("✗ No 'state' field found in relay command");
+            Serial.println("✗ No 'relayStatus' field found in relay command");
         }
     }
 }
