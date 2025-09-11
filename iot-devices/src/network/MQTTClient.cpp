@@ -2,11 +2,11 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <time.h>
+#include <SPIFFS.h>
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000);
 
-// Global variables for remote relay control (declared in main.cpp)
 extern bool remoteRelayCommand;
 extern bool remoteRelayStatus;
 extern String remoteRelayReason;
@@ -27,9 +27,80 @@ MQTTClient::MQTTClient(const char* server, int port, const char* user, const cha
 }
 
 bool MQTTClient::loadCertificates() {
-    // For now, we'll use setInsecure mode for testing
-    // This bypasses certificate verification temporarily
-    Serial.println("Using insecure mode for MQTT SSL connection");
+    Serial.println("Loading CA certificates for HiveMQ Cloud TLS connection");
+    
+    if (!SPIFFS.begin(true)) {
+        Serial.println("Failed to mount SPIFFS filesystem");
+        Serial.println("Run 'pio run --target uploadfs' to upload certificates");
+        return false;
+    }
+    
+    Serial.println("SPIFFS filesystem mounted successfully");
+    
+    Serial.println("Available SPIFFS files:");
+    File root = SPIFFS.open("/");
+    File file = root.openNextFile();
+    bool hasFiles = false;
+    while(file) {
+        if (!file.isDirectory()) {
+            Serial.printf("   %s (%d bytes)\n", file.name(), file.size());
+            hasFiles = true;
+        }
+        file = root.openNextFile();
+    }
+    
+    if (!hasFiles) {
+        Serial.println("No files found - upload certificates first");
+        return false;
+    }
+    
+    Serial.println("Loading HiveMQ Cloud CA certificate from SPIFFS file");
+    
+    File certFile = SPIFFS.open("/hivemq_ca.crt", "r");
+    if (!certFile) {
+        Serial.println("Failed to open certificate file: /hivemq_ca.crt");
+        Serial.println("Make sure to upload the certificate file first with: pio run --target uploadfs");
+        return false;
+    }
+    
+    size_t certSize = certFile.size();
+    if (certSize == 0) {
+        Serial.println("Certificate file is empty");
+        certFile.close();
+        return false;
+    }
+    
+    String certificate = certFile.readString();
+    certFile.close();
+    
+    if (certificate.length() == 0) {
+        Serial.println("Failed to read certificate content");
+        return false;
+    }
+    
+    certificate.trim();
+    certificate.replace("\r\n", "\n");  
+    certificate.replace("\r", "\n");    
+    
+    while (certificate.indexOf("\n\n") != -1) {
+        certificate.replace("\n\n", "\n");
+    }
+    
+    Serial.printf("Certificate loaded from file (%d bytes)\n", certificate.length());
+    Serial.println("Certificate preview (first 100 chars):");
+    Serial.println(certificate.substring(0, 100));
+    
+    if (!certificate.startsWith("-----BEGIN CERTIFICATE-----") || 
+        !certificate.endsWith("-----END CERTIFICATE-----")) {
+        Serial.println("Invalid certificate format - must be PEM format");
+        Serial.printf("Starts with BEGIN: %s\n", certificate.startsWith("-----BEGIN CERTIFICATE-----") ? "YES" : "NO");
+        Serial.printf("Ends with END: %s\n", certificate.endsWith("-----END CERTIFICATE-----") ? "YES" : "NO");
+        return false;
+    }
+    
+    wifiClientSecure.setCACert(certificate.c_str());
+    
+    Serial.println("Certificate validation enabled");
     return true;
 }
 
@@ -50,33 +121,29 @@ bool MQTTClient::connectWiFi(const char* ssid, const char* password) {
         Serial.println("WiFi connected!");
         printConnectionInfo();
         
-        // Initialize NTP for time synchronization (required for TLS certificates)
         Serial.println("Synchronizing time with NTP server...");
         timeClient.begin();
         timeClient.update();
         
-        // Set system time for certificate validation
         time_t epochTime = timeClient.getEpochTime();
         struct timeval tv = {epochTime, 0};
         settimeofday(&tv, NULL);
         
         Serial.printf("Current time: %s", ctime(&epochTime));
         
-        // Load certificates from SPIFFS
-        if (loadCertificates()) {
-            Serial.println("Certificates loaded successfully");
-        } else {
-            Serial.println("Certificate loading failed, using insecure mode");
+        if (!loadCertificates()) {
+            Serial.println("Certificate loading failed!");
+            Serial.println("Cannot establish secure TLS connection without proper certificates");
+            return false;
         }
         
-        // Configure secure client
-        wifiClientSecure.setInsecure(); // Temporary: use insecure mode
+        Serial.println("Certificates loaded - ready for secure TLS connection");
+        
         mqttClient.setClient(wifiClientSecure);
         mqttClient.setServer(mqttServer, mqttPort);
         mqttClient.setKeepAlive(60);
         mqttClient.setSocketTimeout(30);
         
-        // Set callback for incoming messages
         mqttClient.setCallback([this](char* topic, byte* payload, unsigned int length) {
             this->handleMessage(topic, payload, length);
         });
@@ -95,31 +162,31 @@ bool MQTTClient::connectMQTT() {
         return true;
     }
 
-    Serial.print("Connecting to HiveMQ Cloud MQTT broker...");
+    Serial.print("Connecting to HiveMQ Cloud MQTT broker with TLS...");
     
     String clientId = String("ESP32-") + deviceId + "-" + String(random(0xffff), HEX);
     
-    if (mqttClient.connect(clientId.c_str(), mqttUser, mqttPassword)) {
-        Serial.println(" connected!");
+    bool connected = mqttClient.connect(clientId.c_str(), mqttUser, mqttPassword);
+    
+    if (connected) {
+        Serial.println(" connected successfully with TLS!");
         isConnectedFlag = true;
         
-        // Subscribe to relay command topic
         if (mqttClient.subscribe(relayCommandTopic)) {
-            Serial.printf("✓ Successfully subscribed to relay command topic: %s\n", relayCommandTopic);
+            Serial.printf("Successfully subscribed to relay command topic: %s\n", relayCommandTopic);
         } else {
-            Serial.printf("✗ Failed to subscribe to relay command topic: %s\n", relayCommandTopic);
+            Serial.printf("Failed to subscribe to relay command topic: %s\n", relayCommandTopic);
         }
         
-        // Publish online status
         publishStatus("online");
         
         return true;
     } else {
-        Serial.printf(" failed, rc=%d\n", mqttClient.state());
+        Serial.printf(" failed with TLS, rc=%d\n", mqttClient.state());
         Serial.println("MQTT Connection Error Codes:");
         Serial.println("-4: Connection timeout");
         Serial.println("-3: Connection lost");
-        Serial.println("-2: Connect failed");
+        Serial.println("-2: Connect failed (likely TLS certificate issue)");
         Serial.println("-1: Disconnected");
         Serial.println(" 0: Connected");
         Serial.println(" 1: Wrong protocol version");
@@ -127,6 +194,7 @@ bool MQTTClient::connectMQTT() {
         Serial.println(" 3: Server unavailable");
         Serial.println(" 4: Bad credentials");
         Serial.println(" 5: Not authorized");
+        Serial.println("If rc=-2, check certificate store and ensure proper CA certificates are loaded");
         
         isConnectedFlag = false;
         return false;
@@ -161,9 +229,9 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
     Serial.printf("Length: %u\n", length);
     Serial.println("=============================");
     
-    // Check if this is a relay command
+
     if (String(topic) == String(relayCommandTopic)) {
-        // Parse JSON command
+  
         JsonDocument doc;
         DeserializationError error = deserializeJson(doc, message);
         
@@ -172,19 +240,17 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
             return;
         }
         
-        // Handle dashboard format: { "relayStatus": true/false, "sensorReadingId": "768" }
         if (doc["relayStatus"].is<bool>()) {
             bool relayStatus = doc["relayStatus"];
             String state = relayStatus ? "on" : "off";
             
-            Serial.printf("✓ Relay command received - RelayStatus: %s\n", relayStatus ? "true" : "false");
+            Serial.printf("Relay command received - RelayStatus: %s\n", relayStatus ? "true" : "false");
             
-            // Set global variables for main.cpp to handle
             remoteRelayCommand = true;
             remoteRelayStatus = relayStatus;
             remoteRelayReason = "Remote MQTT command: " + state;
             
-            Serial.printf("✓ Global variables set: command=%s, status=%s\n", 
+            Serial.printf("Global variables set: command=%s, status=%s\n", 
                          remoteRelayCommand ? "true" : "false",
                          remoteRelayStatus ? "true" : "false");
             
@@ -194,13 +260,12 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
                 Serial.println("Will deactivate Manual Override Mode (return to automatic control)");
             }
             
-            // If sensorReadingId is provided, we could log it
             if (doc["sensorReadingId"].is<const char*>()) {
                 String sensorReadingId = doc["sensorReadingId"];
                 Serial.printf("Linked to sensor reading ID: %s\n", sensorReadingId.c_str());
             }
         } else {
-            Serial.println("✗ No 'relayStatus' field found in relay command");
+            Serial.println("No 'relayStatus' field found in relay command");
         }
     }
 }
@@ -215,7 +280,7 @@ bool MQTTClient::publishSensorData(float temp, float humidity, int soilMoisture,
     doc["temperature"] = temp;
     doc["humidity"] = humidity;
     doc["soilMoisture"] = soilMoisture;
-    doc["soilTemperature"] = soilTemp;  // Use actual soil temperature sensor reading
+    doc["soilTemperature"] = soilTemp;
     doc["rainDetected"] = rain;
     doc["waterLevel"] = waterLevel;
 
@@ -241,7 +306,6 @@ bool MQTTClient::publishRelayLog(bool relayStatus, String reason) {
     JsonDocument doc;
     doc["relayStatus"] = relayStatus;
     doc["triggerReason"] = reason;
-   
 
     String jsonString;
     serializeJson(doc, jsonString);

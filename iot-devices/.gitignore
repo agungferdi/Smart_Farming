@@ -11,3 +11,8 @@
 .vscode/c_cpp_properties.json
 .vscode/tasks.json
 compile_commands.json
+
+# Certificate files
+data/*.crt
+data/certs.ar
+data/certs.idx
