@@ -9,6 +9,7 @@ namespace Pins {
     const int SOIL_MOISTURE_PIN = 35;  // GPIO35 (ADC1 - safe with WiFi)
     const int SOIL_TEMP_PIN = 4;      // GPIO4 for DS18B20 soil temperature sensor
     const int RELAY_PIN = 17;          // GPIO17 for relay control
+    const int MODEM_RELAY_PIN = 23;    // GPIO23 for modem power relay
     const int RAIN_SENSOR_PIN = 18;    // GPIO18 for digital rain detection
     const int WATER_LEVEL_PIN = 34;    // GPIO34 for water level sensor (analog - ADC capable)
     const int SDA_PIN = 21;            // SDA pin for OLED
@@ -51,7 +52,7 @@ namespace WaterLevelCalibration {
 // Relay Control Thresholds
 namespace RelayThresholds {
     const int SOIL_MOISTURE_THRESHOLD = 20;   // 0-20% soil moisture triggers pump
-    // Removed temperature threshold since we only use soil moisture now
+    
 }
 
 // Timing Configuration
