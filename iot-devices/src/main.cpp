@@ -3,48 +3,58 @@
 #include "utils/SensorCalibration.h"
 #include "sensors/DHT11Sensor.h"
 #include "sensors/SoilMoistureSensor.h"
-// #include "sensors/SoilTemperatureSensor.h"
-// kljsdkfljweklfrkljwelkkjljskdf
+#include "sensors/SoilTemperatureSensor.h"
 #include "sensors/RainSensor.h"
 #include "sensors/WaterLevelSensor.h"
 #include "actuators/RelayController.h"
 #include "display/OLEDDisplay.h"
-#include "network/DataUploader.h"
+#include "network/MQTTClient.h"
 
-// Function declarations
 void initializeComponents();
 bool readAllSensors();
 void controlPump();
 void updateDisplay();
-void sendDataToCloud();
+void sendDataToMQTT();
 void testSensors();
-
-// Initialize components using calibration constants
 DHT11Sensor dht11(Pins::DHT11_PIN, DHT11Config::DHT_TYPE);
 SoilMoistureSensor soilSensor(Pins::SOIL_MOISTURE_PIN); 
-// SoilTemperatureSensor soilTempSensor(Pins::SOIL_TEMP_PIN);
+SoilTemperatureSensor soilTempSensor(Pins::SOIL_TEMP_PIN);
 RainSensor rainSensor(Pins::RAIN_SENSOR_PIN);
 WaterLevelSensor waterSensor(Pins::WATER_LEVEL_PIN);
 RelayController relay(Pins::RELAY_PIN);
 OLEDDisplay oled(Pins::SDA_PIN, Pins::SCL_PIN);
-DataUploader uploader(BACKEND_URL, BACKEND_API_KEY);  // Simplified - backend only
 
-// Timing variables
+MQTTClient mqttClient(MQTT_SERVER, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, 
+                      DEVICE_ID, MQTT_TOPIC_SENSOR_DATA, MQTT_TOPIC_RELAY_LOG, MQTT_TOPIC_STATUS, MQTT_TOPIC_RELAY_COMMAND);
+
+bool remoteRelayCommand = false;
+bool remoteRelayStatus = false;
+String remoteRelayReason = "";
+bool manualOverrideMode = false; 
 unsigned long lastSensorRead = 0;
 unsigned long lastDataSent = 0;
 
-// Sensor data validation
 bool sensorDataValid = false;
 
 void setup() {
     Serial.begin(115200);
     delay(1000);
     
-    Serial.println("=== Smart Irrigation System with Rain Detection ===");
+    Serial.println("=== Smart Irrigation System with MQTT ===");
     
     initializeComponents();
     
-    uploader.connectWiFi(WIFI_SSID, WIFI_PASSWORD);
+    if (mqttClient.connectWiFi(WIFI_SSID, WIFI_PASSWORD)) {
+        Serial.println("WiFi connected successfully!");
+        
+        if (mqttClient.connectMQTT()) {
+            Serial.println("MQTT connected successfully!");
+        } else {
+            Serial.println("MQTT connection failed - will retry automatically");
+        }
+    } else {
+        Serial.println("WiFi connection failed!");
+    }
 
     testSensors();
     
@@ -53,6 +63,8 @@ void setup() {
 
 void loop() {
     unsigned long currentTime = millis();
+    
+    mqttClient.loop();
     
     if (currentTime - lastSensorRead >= Timing::SENSOR_INTERVAL) {
         sensorDataValid = readAllSensors();
@@ -67,7 +79,7 @@ void loop() {
     
     if (currentTime - lastDataSent >= Timing::SEND_INTERVAL) {
         if (sensorDataValid) {
-            sendDataToCloud();
+            sendDataToMQTT();
         }
         lastDataSent = currentTime;
     }
@@ -78,23 +90,19 @@ void loop() {
 void initializeComponents() {
     Serial.println("Initializing components...");
     
-    // Initialize I2C first (critical for OLED)
     Wire.begin(Pins::SDA_PIN, Pins::SCL_PIN);
     delay(100);
     
-    // Initialize OLED display first
     if (!oled.begin()) {
         Serial.println("OLED initialization failed!");
         Serial.println("Continuing without display...");
     }
     
-    // Initialize other components
     dht11.begin();
-    // soilTempSensor.begin();
+    soilTempSensor.begin();
     rainSensor.begin();
     relay.begin();
     
-    // Print sensor configuration
     Serial.printf("DHT11 on GPIO%d, Soil moisture on GPIO%d, Relay on GPIO%d\n", 
                   Pins::DHT11_PIN, Pins::SOIL_MOISTURE_PIN, Pins::RELAY_PIN);
     Serial.printf("Rain sensor on GPIO%d, Water level on GPIO%d\n", 
@@ -106,26 +114,29 @@ bool readAllSensors() {
 
     bool dhtOk = dht11.readData();
     bool soilOk = soilSensor.readData();
-    // bool soilTempOk = soilTempSensor.readData();
+    bool soilTempOk = soilTempSensor.readData();
     bool rainOk = rainSensor.readData();
     bool waterOk = waterSensor.readData();
     
     if (dhtOk) dht11.printDebugInfo();
     if (soilOk) soilSensor.printDebugInfo();
-
+    if (soilTempOk) soilTempSensor.printDebugInfo();
     if (rainOk) rainSensor.printDebugInfo();
     if (waterOk) waterSensor.printDebugInfo();
     
-    bool allValid = dhtOk && soilOk && rainOk && waterOk;
+    bool allValid = dhtOk && soilOk && soilTempOk && rainOk && waterOk;
     
     if (allValid) {
-        Serial.printf("Summary - Air: %.1f°C, Humid: %.1f%%, Soil: %d%%, Water: %s, Rain: %s\n",
+        String modeStatus = manualOverrideMode ? " [MANUAL OVERRIDE]" : " [AUTO MODE]";
+        Serial.printf("Summary - Air: %.1f°C, Humid: %.1f%%, Soil: %d%%, SoilTemp: %.1f°C, Water: %s, Rain: %s%s\n",
                       dht11.getTemperature(), dht11.getHumidity(), 
                       soilSensor.getPercentage(),
+                      soilTempSensor.getTemperature(),
                       waterSensor.getStatus().c_str(),
-                      rainSensor.isRainDetected() ? "true" : "false");
+                      rainSensor.isRainDetected() ? "true" : "false",
+                      modeStatus.c_str());
     } else {
-        Serial.println("❌ Some sensor readings are invalid!");
+        Serial.println("Some sensor readings are invalid!");
     }
     
     return allValid;
@@ -133,17 +144,41 @@ bool readAllSensors() {
 
 void controlPump() {
     String reason;
+    bool relayTriggered = false;
     
-    relay.control(soilSensor.getPercentage(), reason);
+    if (remoteRelayCommand) {
+        Serial.printf("Processing remote relay command: %s\n", remoteRelayStatus ? "ON" : "OFF");
+        
+        if (remoteRelayStatus) {
+            manualOverrideMode = true;
+            relay.setRelayState(true);
+            reason = remoteRelayReason + " (Manual Override Mode)";
+            Serial.println("Manual Override Mode ACTIVATED - Relay will stay ON until manual OFF command");
+        } else {
+            manualOverrideMode = false;
+            relay.setRelayState(false);
+            reason = remoteRelayReason + " (Returning to Automatic Mode)";
+            Serial.println("Manual Override Mode DEACTIVATED - Returning to automatic soil moisture control");
+        }
+        
+        relayTriggered = true;
+        
+        remoteRelayCommand = false;
+    } else if (manualOverrideMode) {
+        Serial.printf("Manual Override Mode: Relay stays ON (Soil: %d%%, but ignoring automatic control)\n", 
+                     soilSensor.getPercentage());
+        return; 
+    } else {
+        relay.control(soilSensor.getPercentage(), reason);
+        relayTriggered = relay.hasStateChanged();
+    }
     
-    if (relay.hasStateChanged()) {
+    if (relayTriggered) {
         relay.printDebugInfo(reason);
         
-        long lastSensorId = uploader.getLastSensorId();
-        if (lastSensorId > 0) {
-            uploader.sendRelayLog(relay.isRelayActive(), reason, lastSensorId);
-        } else {
-            Serial.println("Warning: No sensor ID available for relay log");
+        bool success = mqttClient.publishRelayLog(relay.isRelayActive(), reason);
+        if (!success) {
+            Serial.println("Warning: Failed to publish relay log to MQTT");
         }
         
         relay.updateLastState();
@@ -154,23 +189,23 @@ void updateDisplay() {
     oled.updateSensorData(dht11.getTemperature(), dht11.getHumidity(),
                          soilSensor.getPercentage(), waterSensor.getStatus(),
                          rainSensor.isRainDetected(), relay.isRelayActive(),
-                         uploader.isWiFiConnected());
+                         mqttClient.isConnected()); 
 }
 
-void sendDataToCloud() {
-    long sensorId = uploader.sendSensorData(
+void sendDataToMQTT() {  
+    bool success = mqttClient.publishSensorData(
         dht11.getTemperature(),
         dht11.getHumidity(),
         soilSensor.getPercentage(),
-        // soilTempSensor.getTemperature(), // Disabled - sensor not connected
+        soilTempSensor.getTemperature(),
         rainSensor.isRainDetected(),
         waterSensor.getStatus()
     );
     
-    if (sensorId > 0) {
-        Serial.printf("✓ Sensor data sent to database with ID: %ld\n", sensorId);
+    if (success) {
+        Serial.println("✓ Sensor data published to MQTT successfully");
     } else {
-        Serial.println("✗ Failed to send sensor data");
+        Serial.println("✗ Failed to publish sensor data to MQTT");
     }
 }
 
@@ -179,12 +214,13 @@ void testSensors() {
     
     dht11.readData();
     soilSensor.readData();
-    // soilTempSensor.readData();
+    soilTempSensor.readData();
     rainSensor.readData();
     waterSensor.readData();
     
-    Serial.printf("Initial readings - Soil: %d, Rain: %s, Water: %d\n",
+    Serial.printf("Initial readings - Soil: %d, SoilTemp: %.1f°C, Rain: %s, Water: %d\n",
                   soilSensor.getRawValue(),
+                  soilTempSensor.getTemperature(),
                   rainSensor.isRainDetected() ? "Rain detected" : "No rain",
                   waterSensor.getRawValue());
 }

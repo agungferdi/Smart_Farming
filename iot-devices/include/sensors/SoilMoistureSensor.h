@@ -8,7 +8,7 @@ private:
     int pin;
     int rawValue;
     int percentage;
-    // Calibration values moved to SensorCalibration.h/cpp
+    
 
 public:
     SoilMoistureSensor(int analogPin);

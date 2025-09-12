@@ -9,13 +9,13 @@ private:
     bool isActive;
     bool lastState;
     const int SOIL_THRESHOLD = 20;       // 0-20% soil moisture triggers pump
-    // Removed temperature threshold since we only use soil moisture now
 
 public:
     RelayController(int relayPin);
     void begin();
-    bool shouldActivate(int soilMoisture);  // Only soil moisture parameter now
-    void control(int soilMoisture, String& reason);  // Simplified parameters
+    bool shouldActivate(int soilMoisture);  
+    void control(int soilMoisture, String& reason);  
+    void setRelayState(bool state);  
     bool isRelayActive() const;
     bool hasStateChanged();
     void updateLastState();

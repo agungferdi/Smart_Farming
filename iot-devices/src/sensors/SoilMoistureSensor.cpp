@@ -21,7 +21,6 @@ int SoilMoistureSensor::getPercentage() const {
 }
 
 int SoilMoistureSensor::convertToPercentage(int rawValue) {
-    // Use the centralized calibration function
     return SoilMoistureCalibration::convertToPercentage(rawValue);
 }
 
