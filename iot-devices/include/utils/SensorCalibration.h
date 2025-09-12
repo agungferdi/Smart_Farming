@@ -51,7 +51,7 @@ namespace WaterLevelCalibration {
 
 // Relay Control Thresholds
 namespace RelayThresholds {
-    const int SOIL_MOISTURE_THRESHOLD = 20;   // 0-20% soil moisture triggers pump
+    const int SOIL_MOISTURE_THRESHOLD = 10;   // 0-10% soil moisture triggers pump
     
 }
 
