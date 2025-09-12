@@ -8,7 +8,7 @@ private:
     int pin;
     bool isActive;
     bool lastState;
-    const int SOIL_THRESHOLD = 20;       // 0-20% soil moisture triggers pump
+    const int SOIL_THRESHOLD = 10;       // 0-10% soil moisture triggers pump
 
 public:
     RelayController(int relayPin);

@@ -14,11 +14,9 @@ OLEDDisplay::~OLEDDisplay() {
 bool OLEDDisplay::begin() {
     Serial.println("Initializing OLED display...");
     
-    // Initialize I2C for OLED display (critical - must be done first)
     Wire.begin(sdaPin, sclPin);
-    delay(100); // Give I2C time to initialize
+    delay(100);
     
-    // Scan for I2C devices first
     Serial.println("Scanning I2C devices...");
     byte i2cResult, address;
     int nDevices = 0;
@@ -32,7 +30,7 @@ bool OLEDDisplay::begin() {
     const byte I2C_DEVICE_PRESENT_CODE = 0; // 0 means device responded
     for(address = I2C_ADDRESS_MIN; address < I2C_ADDRESS_MAX; address++) {
         Wire.beginTransmission(address);
-        i2cResult = Wire.endTransmission(); // Fixed: use i2cResult instead of undeclared 'error'
+        i2cResult = Wire.endTransmission();
         
         if (i2cResult == 0) {
             Serial.printf("I2C device found at address 0x%02X\n", address);
@@ -60,7 +58,6 @@ bool OLEDDisplay::begin() {
         return false;
     }
     
-    // Create display object dynamically when we actually need it
     Serial.println("Creating display object...");
     display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
     
@@ -69,10 +66,8 @@ bool OLEDDisplay::begin() {
         return false;
     }
     
-    // Try with address 0x3C first
     Serial.printf("Trying OLED at address 0x3C...\n");
     if (!display->begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-        // Try with address 0x3D
         Serial.printf("Failed. Trying OLED at address 0x3D...\n");
         if (!display->begin(SSD1306_SWITCHCAPVCC, 0x3D)) {
             Serial.println(F("SSD1306 initialization failed at both 0x3C and 0x3D"));
@@ -88,73 +83,43 @@ bool OLEDDisplay::begin() {
         Serial.println("OLED successfully initialized at address 0x3C!");
     }
 
-    // the library initializes this with an Adafruit splash screen.
     display->display();
-    delay(2000); // Pause for 2 seconds
+    delay(2000);
 
-    showStartupMessage();
     Serial.println("OLED display initialized successfully!");
     return true;
 }
 
 void OLEDDisplay::showStartupMessage() {
     if (!display) return;
-    
-    // Clear the buffer first
-    display->clearDisplay();
-    
-    // Display startup message
-    display->setTextSize(1);
-    display->setTextColor(SSD1306_WHITE);
-    display->setCursor(0, 0);
-    display->println(F("Smart Irrigation"));
-    display->println(F("System Starting..."));
-    display->println(F(""));
-    display->printf("SDA: GPIO%d\n", sdaPin);
-    display->printf("SCL: GPIO%d\n", sclPin);
-    display->display();
-    delay(3000); // Wait 3 seconds like the original
 }
 
-void OLEDDisplay::updateSensorData(float temp, float humidity, int soilMoisture, 
+void OLEDDisplay::updateSensorData(float temp, float humidity, int soilMoisture, float soilTemp,
                                   String waterLevel, bool rain, bool pumpActive, bool wifiConnected) {
     if (!display) return;
     
-    // Clear the display
     display->clearDisplay();
-    
-    // Set text properties
-    display->setTextSize(1);
     display->setTextColor(SSD1306_WHITE);
+    
+    display->setTextSize(1);
     display->setCursor(0, 0);
+    display->printf("SOIL: %d%%", soilMoisture);
+     
+    display->setCursor(0, 12);
+    display->printf("PUMP: %s", pumpActive ? "ON" : "OFF");
     
-    // Title
-    display->println(F("Smart Irrigation"));
-    display->println(F("================"));
+    display->setCursor(0, 24);
+    display->printf("Soil Temp: %.1fC", soilTemp);
     
-    // Temperature
-    display->printf("Temp: %.1f C\n", temp);
+    display->setCursor(0, 36);
+    display->printf("Air:%.0fC Hum:%.0f%%", temp, humidity);
     
-    // Humidity
-    display->printf("Humid: %.1f %%\n", humidity);
+    display->setCursor(0, 48);
+    display->printf("Water:%s Rain:%s", waterLevel.c_str(), rain ? "YES" : "NO");
     
-    // Soil Moisture
-    display->printf("Soil: %d %%\n", soilMoisture);
+    display->setCursor(0, 56);
+    display->printf("WiFi:%s", wifiConnected ? "OK" : "FAIL");
     
-    // Water Level
-    display->print(F("Water: "));
-    display->println(waterLevel);
-    
-    // Rain Status
-    display->printf("Rain: %s\n", rain ? "YES" : "NO");
-    
-    // Pump Status
-    display->printf("Pump: %s\n", pumpActive ? "ON" : "OFF");
-    
-    // WiFi Status
-    display->printf("WiFi: %s\n", wifiConnected ? "OK" : "FAIL");
-    
-    // Display everything on the screen
     display->display();
 }
 

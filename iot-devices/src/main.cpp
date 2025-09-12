@@ -43,7 +43,7 @@ void setup() {
     delay(1000);
     
     modemRelay.begin();  
-    delay(2000);  /
+    delay(2000);
     
     Serial.println("=== Smart Irrigation System with MQTT ===");
     
@@ -192,9 +192,9 @@ void controlPump() {
 
 void updateDisplay() {
     oled.updateSensorData(dht11.getTemperature(), dht11.getHumidity(),
-                         soilSensor.getPercentage(), waterSensor.getStatus(),
-                         rainSensor.isRainDetected(), relay.isRelayActive(),
-                         mqttClient.isConnected()); 
+                         soilSensor.getPercentage(), soilTempSensor.getTemperature(),
+                         waterSensor.getStatus(), rainSensor.isRainDetected(), 
+                         relay.isRelayActive(), mqttClient.isConnected()); 
 }
 
 void sendDataToMQTT() {  
