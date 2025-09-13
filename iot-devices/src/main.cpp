@@ -7,6 +7,7 @@
 #include "sensors/RainSensor.h"
 #include "sensors/WaterLevelSensor.h"
 #include "actuators/RelayController.h"
+#include "actuators/ModemRelay.h"
 #include "display/OLEDDisplay.h"
 #include "network/MQTTClient.h"
 
@@ -22,6 +23,7 @@ SoilTemperatureSensor soilTempSensor(Pins::SOIL_TEMP_PIN);
 RainSensor rainSensor(Pins::RAIN_SENSOR_PIN);
 WaterLevelSensor waterSensor(Pins::WATER_LEVEL_PIN);
 RelayController relay(Pins::RELAY_PIN);
+ModemRelay modemRelay(Pins::MODEM_RELAY_PIN);
 OLEDDisplay oled(Pins::SDA_PIN, Pins::SCL_PIN);
 
 MQTTClient mqttClient(MQTT_SERVER, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, 
@@ -39,6 +41,9 @@ bool sensorDataValid = false;
 void setup() {
     Serial.begin(115200);
     delay(1000);
+    
+    modemRelay.begin();  
+    delay(2000);
     
     Serial.println("=== Smart Irrigation System with MQTT ===");
     
@@ -105,8 +110,8 @@ void initializeComponents() {
     
     Serial.printf("DHT11 on GPIO%d, Soil moisture on GPIO%d, Relay on GPIO%d\n", 
                   Pins::DHT11_PIN, Pins::SOIL_MOISTURE_PIN, Pins::RELAY_PIN);
-    Serial.printf("Rain sensor on GPIO%d, Water level on GPIO%d\n", 
-                  Pins::RAIN_SENSOR_PIN, Pins::WATER_LEVEL_PIN);
+    Serial.printf("Rain sensor on GPIO%d, Water level on GPIO%d, Modem relay on GPIO%d\n", 
+                  Pins::RAIN_SENSOR_PIN, Pins::WATER_LEVEL_PIN, Pins::MODEM_RELAY_PIN);
     Serial.printf("OLED on SDA%d/SCL%d\n", Pins::SDA_PIN, Pins::SCL_PIN);
 }
 
@@ -187,9 +192,9 @@ void controlPump() {
 
 void updateDisplay() {
     oled.updateSensorData(dht11.getTemperature(), dht11.getHumidity(),
-                         soilSensor.getPercentage(), waterSensor.getStatus(),
-                         rainSensor.isRainDetected(), relay.isRelayActive(),
-                         mqttClient.isConnected()); 
+                         soilSensor.getPercentage(), soilTempSensor.getTemperature(),
+                         waterSensor.getStatus(), rainSensor.isRainDetected(), 
+                         relay.isRelayActive(), mqttClient.isConnected()); 
 }
 
 void sendDataToMQTT() {  

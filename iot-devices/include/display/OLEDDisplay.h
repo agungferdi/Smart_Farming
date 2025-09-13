@@ -20,7 +20,7 @@ public:
     ~OLEDDisplay(); // Add destructor
     bool begin();
     void showStartupMessage();
-    void updateSensorData(float temp, float humidity, int soilMoisture, 
+    void updateSensorData(float temp, float humidity, int soilMoisture, float soilTemp,
                          String waterLevel, bool rain, bool pumpActive, bool wifiConnected);
     void clearDisplay();
     void displayError(const String& errorMessage);
