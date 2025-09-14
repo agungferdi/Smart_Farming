@@ -51,7 +51,7 @@ namespace RelayThresholds {
 
 namespace Timing {
     const unsigned long SENSOR_INTERVAL = 2000;  
-    const unsigned long SEND_INTERVAL = 300000;  
+    const unsigned long SEND_INTERVAL = 60000;  
 }
 
 namespace CalibrationUtils {

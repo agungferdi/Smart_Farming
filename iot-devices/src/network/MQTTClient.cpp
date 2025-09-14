@@ -4,9 +4,8 @@
 #include <time.h>
 #include <SPIFFS.h>
 
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000);
-
+extern WiFiUDP ntpUDP;
+extern NTPClient timeClient;
 extern bool remoteRelayCommand;
 extern bool remoteRelayStatus;
 extern String remoteRelayReason;

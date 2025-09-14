@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "config.h"
 #include "utils/SensorCalibration.h"
+#include "utils/SleepManager.h"
 #include "sensors/DHT11Sensor.h"
 #include "sensors/SoilMoistureSensor.h"
 #include "sensors/SoilTemperatureSensor.h"
@@ -10,6 +11,8 @@
 #include "actuators/ModemRelay.h"
 #include "display/OLEDDisplay.h"
 #include "network/MQTTClient.h"
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 void initializeComponents();
 bool readAllSensors();
@@ -17,6 +20,9 @@ void controlPump();
 void updateDisplay();
 void sendDataToMQTT();
 void testSensors();
+void syncRTCWithNTP();
+
+// Sensor and actuator instances
 DHT11Sensor dht11(Pins::DHT11_PIN, DHT11Config::DHT_TYPE);
 SoilMoistureSensor soilSensor(Pins::SOIL_MOISTURE_PIN); 
 SoilTemperatureSensor soilTempSensor(Pins::SOIL_TEMP_PIN);
@@ -28,6 +34,10 @@ OLEDDisplay oled(Pins::SDA_PIN, Pins::SCL_PIN);
 
 MQTTClient mqttClient(MQTT_SERVER, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, 
                       DEVICE_ID, MQTT_TOPIC_SENSOR_DATA, MQTT_TOPIC_RELAY_LOG, MQTT_TOPIC_STATUS, MQTT_TOPIC_RELAY_COMMAND);
+
+SleepManager sleepManager;
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000);
 
 bool remoteRelayCommand = false;
 bool remoteRelayStatus = false;
@@ -49,8 +59,24 @@ void setup() {
     
     initializeComponents();
     
+    if (sleepManager.begin()) {
+        Serial.println("Sleep manager initialized successfully");
+        sleepManager.setDefaultSchedule();
+        
+        if (sleepManager.shouldSleepOnBoot()) {
+            Serial.println("Not irrigation time - going to sleep immediately");
+            sleepManager.sleepUntilNext();
+        }
+        
+        Serial.println("It's irrigation time - staying awake");
+    } else {
+        Serial.println("Failed to initialize sleep manager");
+    }
+    
     if (mqttClient.connectWiFi(WIFI_SSID, WIFI_PASSWORD)) {
         Serial.println("WiFi connected successfully!");
+        
+        syncRTCWithNTP();
         
         if (mqttClient.connectMQTT()) {
             Serial.println("MQTT connected successfully!");
@@ -68,8 +94,33 @@ void setup() {
 
 void loop() {
     unsigned long currentTime = millis();
+    static int lastSession = -1;
     
     mqttClient.loop();
+    
+    DateTime now = sleepManager.getCurrentTime();
+    int currentSession = sleepManager.findCurrentSession();
+    
+    if (currentSession >= 0 && currentSession != lastSession) {
+        Serial.printf("Irrigation session %d started!\n", currentSession + 1);
+    }
+    
+    if (lastSession >= 0 && currentSession == -1) {
+        Serial.println("SESSION ENDED - ENTERING SLEEP MODE!");
+        
+        modemRelay.turnOff();
+        
+        sleepManager.sleepUntilNext();
+        
+        modemRelay.turnOn();
+        delay(2000);
+        
+        if (mqttClient.connectWiFi(WIFI_SSID, WIFI_PASSWORD)) {
+            mqttClient.connectMQTT();
+        }
+    }
+    
+    lastSession = currentSession;
     
     if (currentTime - lastSensorRead >= Timing::SENSOR_INTERVAL) {
         sensorDataValid = readAllSensors();
@@ -89,7 +140,7 @@ void loop() {
         lastDataSent = currentTime;
     }
     
-    delay(100);
+    delay(1000);
 }
 
 void initializeComponents() {
@@ -116,7 +167,6 @@ void initializeComponents() {
 }
 
 bool readAllSensors() {
-
     bool dhtOk = dht11.readData();
     bool soilOk = soilSensor.readData();
     bool soilTempOk = soilTempSensor.readData();
@@ -208,9 +258,9 @@ void sendDataToMQTT() {
     );
     
     if (success) {
-        Serial.println("✓ Sensor data published to MQTT successfully");
+        Serial.println("Sensor data published to MQTT successfully");
     } else {
-        Serial.println("✗ Failed to publish sensor data to MQTT");
+        Serial.println("Failed to publish sensor data to MQTT");
     }
 }
 
@@ -228,4 +278,18 @@ void testSensors() {
                   soilTempSensor.getTemperature(),
                   rainSensor.isRainDetected() ? "Rain detected" : "No rain",
                   waterSensor.getRawValue());
+}
+
+void syncRTCWithNTP() {
+    Serial.println("Syncing RTC with NTP time...");
+    
+    timeClient.begin();
+    
+    if (timeClient.update()) {
+        unsigned long epochTime = timeClient.getEpochTime();
+        sleepManager.syncTimeWithNTP(epochTime);
+        Serial.printf("RTC synced successfully with NTP time: %lu\n", epochTime);
+    } else {
+        Serial.println("Failed to sync with NTP server");
+    }
 }
